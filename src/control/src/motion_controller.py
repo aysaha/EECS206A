@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import sys
+import numpy as np
 import rospy
 import tf2_ros
+import tf.transformations as tft
 from geometry_msgs.msg import Twist
 
 
@@ -20,35 +22,55 @@ def controller(source_frame, target_frame):
     while not rospy.is_shutdown():
         try:
             # get the transform from source_frame to target_frame
-            transform = tf_buffer.lookup_transform(target_frame, source_trame, rospy.Time())
-
-            '''
-            STATE
-            q = (x, y, theta)
-
-            INPUT
-            u = (v, omega)
-
-            KINEMATICS
-            x_dot = v*cos(theta)
-            y_dot = v*sin(theta)
-            theta_dot = omega
+            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             
-            CONTROL
-            v_d = v_r*cos(theta_r - theta) + K1*(x_r - x)
-            omega_d = omega_r - K2*(y_r - y)*v_r*sinc(theta_r - theta) - K3*(theta_r - theta)
+            K1 = 0.3
+            K2 = -1
+            eps_d = 0.05
+            eps_theta = 0.05
+            alpha = 0.2
+            beta = 0.2
+
+            x = transform.transform.translation.x
+            y = transform.transform.translation.y
+            q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
+            theta = tft.euler_from_quaternion(q)[-1]
+            
+            transform.transform.rotation.z
+            
+            d = np.sqrt(x*x + y*y)
+            theta_r = np.arctan2(-y, -x)
+            delta_theta = theta - theta_r
+
+            command = Twist()
+
+            '''
+            if d > eps_d and np.abs(delta_theta) > eps_theta:`
+                command.linear.x = 0
+                command.angular.z = K2 * delta_theta
+            elif d > eps_d:
+                command.linear.x = K1 * d
+                command.angular.z = K2 * delta_theta
+                #command.angular.z = 0
+            else:
+                command.linear.x = 0
+                command.angular.z = K2 * theta
             '''
 
-            # generate control command
-            K1 = 0.3
-            K2 = 1
-            command = Twist()
-            command.x = K1 * trans.transform.translation.x
-            command.z = K2 * trans.transform.translation.y
+            def f(x):
+                return (np.arctan(alpha * x - beta) + np.pi / 2) / np.pi
+
+            command.linear.x = K1 * d
+            command.angular.z = -1 * f(d) * delta_theta
+
+            #print("theta = " + str(theta * 180 / np.pi))
+            #print("theta_r = " + str(theta_r * 180 / np.pi))
+            #print("delta theta = " + str((theta-theta_r) * 180 / np.pi))
+            #print("\n")
 
             # publish control input
             turtlebot.publish(command)
-        except tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException:
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             pass
 
         timer.sleep()
@@ -68,4 +90,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.args)
+    main(sys.argv)
