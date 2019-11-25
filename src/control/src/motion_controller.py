@@ -7,10 +7,13 @@ import tf2_ros
 import tf.transformations as tft
 from geometry_msgs.msg import Twist
 
-
-
+STATES = ["MOVE", "ADJUST", "STOP"]
 
 def controller(source_frame, target_frame):
+
+    global STATES
+    current_state = "MOVE"
+
     # create ROS publisher
     turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=10)
 
@@ -26,18 +29,17 @@ def controller(source_frame, target_frame):
             # get the transform from source_frame to target_frame
             transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             
+
             K1 = 0.3
             K2 = -1
 
-            eps_d = 0.05
-            eps_theta = 0.05
-
-            alpha = 0.2
-            beta = 0.2
+            eps_d = 0.03
+            eps_theta = 0.02
 
             x = transform.transform.translation.x
             y = transform.transform.translation.y
             q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
+            
             theta = tft.euler_from_quaternion(q)[-1]
             
             transform.transform.rotation.z
@@ -48,34 +50,39 @@ def controller(source_frame, target_frame):
 
             command = Twist()
 
-            
-            if d > eps_d and np.abs(delta_theta) > eps_theta:
-                command.linear.x = 0
-                command.angular.z = K2 * delta_theta
-            elif d > eps_d:
+            next_state = current_state
+            print(current_state)
+            #Iterate over states
+            print(theta)
+
+
+            if current_state == "STOP":
+                print("Final state")
+
+            elif current_state == "MOVE":
                 command.linear.x = K1 * d
                 command.angular.z = K2 * delta_theta
-                #command.angular.z = 0
-            else:
+
+                if d < eps_d:
+                    next_state = "ADJUST"
+
+
+            elif current_state == "ADJUST":
                 command.linear.x = 0
                 command.angular.z = K2 * theta
+
+                if abs(theta) < eps_theta:
+                    next_state = "STOP"
+
+            else:
+                print("WRONG STATE")
+                sys.exit(1)
             
 
-            '''
-            def f(x):
-                return (np.arctan(alpha * x - beta) + np.pi / 2) / np.pi
-
-            command.linear.x = K1 * d
-            command.angular.z = -1 * f(d) * delta_theta
-            '''
-
-            #print("theta = " + str(theta * 180 / np.pi))
-            #print("theta_r = " + str(theta_r * 180 / np.pi))
-            #print("delta theta = " + str((theta-theta_r) * 180 / np.pi))
-            #print("\n")
-
+            current_state = next_state
             # publish control input
             turtlebot.publish(command)
+
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             pass
 
