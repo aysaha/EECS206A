@@ -1,35 +1,57 @@
 #!/usr/bin/env python
 
 import sys
+import numpy as np
 import rospy
 import tf2_ros
 
 
-def plan(destination, steps=10):
-	waypoint = []
-	position = (0, 0)
+def plan(destination, steps=1000, alpha=1):
+	waypoints = []
+	curr = np.array([0.0, 0.0])
+	prev = np.array([-1.0, -0.0])
+
+	print("destination = " + str(destination))
+	x = destination[0]
+	y = destination[1]
 
 	for i in range(steps):
-		theta = np.arctan2(y, x)
-		waypoint.append((position[0] * np.cos(theta), position[1] * np.sin(theta))) 
+		# velocity vector
+		theta = np.arctan2(-y, -x)
+		mag = np.sqrt(x * x + y * y) / steps
+		v = np.array([mag * np.cos(theta), mag * np.sin(theta)])
 
-	return waypoint
+		# momentum vector
+		m = curr - prev
+		m = m / np.sqrt(m[0] * m[0] + m[1] * m[1]) / steps
+
+		vect = alpha * v + (1 - alpha) * m
+		waypoints.append(curr + vect)
+
+		prev = curr
+		curr = curr + vect
+
+	for waypoint in waypoints:
+		print(str(waypoint[0]) + " " + str(waypoint[1]))
+
+	return waypoints
 
 def planner(source_frame, target_frame):
 	# create ROS publisher
-    #turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=10)
+	#turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=10)
 
 	# create tf buffer primed with a tf listener
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+	tf_buffer = tf2_ros.Buffer()
+	tf_listener = tf2_ros.TransformListener(tf_buffer)
 
 	try:
    		# get the transform from source_frame to target_frame
-        transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
-        path = plan((transform.transform.translation.x, transform.transform.translation.y))
-        print(path)
+   		transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time(), rospy.Duration(1.0))
+   		path = plan((transform.transform.translation.x, transform.transform.translation.y))
+
         #turtlebot.publish(command)
-  	except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+  	except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+		print(e)
 		pass
 
 
