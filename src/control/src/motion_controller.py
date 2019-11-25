@@ -26,8 +26,10 @@ def controller(source_frame, target_frame):
             
             K1 = 0.3
             K2 = -1
+
             eps_d = 0.05
             eps_theta = 0.05
+            
             alpha = 0.2
             beta = 0.2
 
@@ -44,8 +46,8 @@ def controller(source_frame, target_frame):
 
             command = Twist()
 
-            '''
-            if d > eps_d and np.abs(delta_theta) > eps_theta:`
+            
+            if d > eps_d and np.abs(delta_theta) > eps_theta:
                 command.linear.x = 0
                 command.angular.z = K2 * delta_theta
             elif d > eps_d:
@@ -55,13 +57,15 @@ def controller(source_frame, target_frame):
             else:
                 command.linear.x = 0
                 command.angular.z = K2 * theta
-            '''
+            
 
+            '''
             def f(x):
                 return (np.arctan(alpha * x - beta) + np.pi / 2) / np.pi
 
             command.linear.x = K1 * d
             command.angular.z = -1 * f(d) * delta_theta
+            '''
 
             #print("theta = " + str(theta * 180 / np.pi))
             #print("theta_r = " + str(theta_r * 180 / np.pi))
