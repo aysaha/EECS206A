@@ -22,4 +22,6 @@ Introduction to Robotics Final Project
 
 	*Optionnaly, define a goal frame relative to the fixed ar_marker: rosrun tf static_transform_publisher x y z yaw pitch roll fixed_marker_id goal_frame 100
 
+	*Run the node to keep the goal frame active in case of loss of sight: rosrun control frame_publisher.py frame
+
 	*Run the controller: rosrun control motion_controller.py turtlebot_frame goal_frame
