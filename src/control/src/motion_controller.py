@@ -22,20 +22,33 @@ def controller(source_frame, target_frame, move=True):
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
     # create a 10Hz timer
-    timer = rospy.Rate(10) # 10hz
+    timer = rospy.Rate(100) # 10hz
 
     while not rospy.is_shutdown():
         try:
+
+            ############################ PARAMETERS ##################################
+
             # get the transform from source_frame to target_frame
             transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             
+            #K1: Speed proportionnality constant
+            K1 = 1
 
-            K1 = 0.3
+            #K2: Angular velocity proportionnality constant
             K2 = -1
 
+            #Tolerance values for distance and angle
             eps_d = 0.03
-
             eps_theta = 0.03
+
+            #Distance in meters before the turtlebot starts slowing down
+            slowdown_threshold = 0.1
+
+            #Turtlebot max speed in meters per sec
+            max_speed = K1 * slowdown_threshold
+
+            ########################### GET TRANSFORMATION ##########################3
 
             x = transform.transform.translation.x
             y = transform.transform.translation.y
@@ -43,21 +56,16 @@ def controller(source_frame, target_frame, move=True):
             
             theta = tft.euler_from_quaternion(q)[-1]
             
-            #transform.transform.rotation.z
             
             d = np.sqrt(x*x + y*y)
             theta_r = np.arctan2(-y, -x)
-
             delta_theta = theta - theta_r
 
+            #Correct the angle singularity
             if delta_theta > 3.14:
                 delta_theta -= 6.28
             if delta_theta < -3.14:
                 delta_theta += 6.28
-
-
-
-
 
 
             command = Twist()
@@ -65,39 +73,48 @@ def controller(source_frame, target_frame, move=True):
             next_state = current_state
             print(current_state)
 
-
-
-
-
             print("theta_r: " + str(theta_r))
             print("distance: " + str(d))
             print("theta: "+ str(theta))
 
             
-            #rospy.sleep(1)
-            #continue
 
-
+            ################# REVERSE STATE ##################
             if current_state == "REVERSE":
                 command.linear.x = -0.1
 
                 if d > 0.2:
                     next_state = "MOVE"
 
+
+            ################### STOP STATE ####################
             elif current_state == "STOP":
-                print("Final state")
+                #Do nothing
 
                 if abs(theta) > eps_theta:
                     next_state = "ADJUST"
 
-            elif current_state == "MOVE":
-                command.linear.x = K1 * d
-                command.angular.z = K2 * delta_theta
 
+
+            ################# MOVE STATE #####################
+            elif current_state == "MOVE":
+
+                #If you're farther than a certain threshhold value, go at max speed
+                if d > slowdown_threshold:
+                    command.linear.x = max_speed
+                    command.angular.z = K2 * delta_theta
+
+                #Then slow down as you get closer
+                else:
+                    command.linear.x = min(K1 * d,max_speed)
+                    command.angular.z = K2 * delta_theta
+
+                #Transition happens zhen closer to goal than tolerance
                 if d < eps_d:
                     next_state = "ADJUST"
 
 
+            ################# ADJUST STATE ##################
             elif current_state == "ADJUST":
                 command.linear.x = 0
                 command.angular.z = K2 * theta
@@ -105,20 +122,22 @@ def controller(source_frame, target_frame, move=True):
                 if abs(theta) < eps_theta:
                     next_state = "STOP"
 
+
+            ################# PROBLEM STATE ##################
             else:
-                print("WRONG STATE")
+                print("WRONG STATE: " + current_state)
                 sys.exit(1)
             
 
+            #State machine transition
             current_state = next_state
-            # publish control input
 
             if move == "False":
                 print(command)
                 rospy.sleep(1)
                 continue
 
-
+            # publish control input
             turtlebot.publish(command)
 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
