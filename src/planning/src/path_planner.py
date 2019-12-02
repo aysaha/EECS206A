@@ -102,10 +102,20 @@ def planner(state, K=10, N=100):
     end
     '''
 
+    path[-1].theta = 1
+    timer = rospy.Rate(100) # 10hz
+
+    while not rospy.is_shutdown():
+        try:
+            publisher.publish(path[-1])
+            timer.sleep()
+        except:
+            pass
+
     # publish entire path
-    for waypoint in path:
-        print(waypoint)
-        publisher.publish(waypoint)
+    #for waypoint in path:
+    #    print(waypoint)
+    #    publisher.publish(waypoint)
 
 
 def main(args):

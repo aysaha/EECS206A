@@ -6,12 +6,19 @@ import rospy
 import tf2_ros
 import tf.transformations as tft
 from geometry_msgs.msg import Twist
+from planning.msg import State
 
 STATES = ["MOVE", "ADJUST", "STOP", "REVERSE"]
+target = State()
+
+def callback(msg):
+    global target
+    target = msg
+
 
 def controller(source_frame, target_frame, move=True):
 
-    global STATES
+    global STATES, target
     current_state = "REVERSE"
 
     # create ROS publisher
@@ -29,8 +36,7 @@ def controller(source_frame, target_frame, move=True):
 
             ############################ PARAMETERS ##################################
 
-            # get the transform from source_frame to target_frame
-            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
+            
             
             #K1: Speed proportionnality constant
             K1 = 1
@@ -50,11 +56,17 @@ def controller(source_frame, target_frame, move=True):
 
             ########################### GET TRANSFORMATION ##########################3
 
+            '''
+            # get the transform from source_frame to target_frame
+            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             x = transform.transform.translation.x
             y = transform.transform.translation.y
             q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
             
             theta = tft.euler_from_quaternion(q)[-1]
+            '''
+
+            x,y,theta = target.x, target.y, target.theta
             
             
             d = np.sqrt(x*x + y*y)
@@ -77,6 +89,7 @@ def controller(source_frame, target_frame, move=True):
             print("distance: " + str(d))
             print("theta: "+ str(theta))
 
+            print(target.x)
             
 
             ################# REVERSE STATE ##################
@@ -155,6 +168,8 @@ def main(args):
     # initialize ROS node
     rospy.init_node('motion_controller', anonymous=True)
     
+    rospy.Subscriber('/path_planner/waypoint', State, callback)
+
     # run controller
     if len(args) == 4:
         controller(sys.argv[1], sys.argv[2], sys.argv[3])

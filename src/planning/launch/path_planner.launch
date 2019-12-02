@@ -6,7 +6,7 @@
     <node name="path_planner"
           pkg="planning"
           type="path_planner.py"
-          args="10 10 60"
+          args="2 1 0"
           output="screen">
 
         <param name="config" value="$(arg config)" />
