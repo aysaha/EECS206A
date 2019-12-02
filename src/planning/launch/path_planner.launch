@@ -1,0 +1,14 @@
+<launch>
+    <!-- Robot Configuration -->
+    <arg name="config" default="[(0, -1)]" />
+
+    <!-- Planning Node -->
+    <node name="path_planner"
+          pkg="planning"
+          type="path_planner.py"
+          args="10 10 60"
+          output="screen">
+
+        <param name="config" value="$(arg config)" />
+    </node>
+</launch>
