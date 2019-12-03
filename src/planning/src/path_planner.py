@@ -1,83 +1,49 @@
 #!/usr/bin/env python
 
-import sys
 import numpy as np
 import rospy
-from planning.msg import State
+import tf
+import tf2_ros
+#from planning.msg import State
 
-'''
-def plan(destination, steps=1000, alpha=1):
-    waypoints = []
-    curr = np.array([0.0, 0.0])
-    prev = np.array([-1.0, -0.0])
 
-    print("destination = " + str(destination))
-    x = destination[0]
-    y = destination[1]
+PATH = []
+DELTA = 0.01
 
-    for i in range(steps):
-        # velocity vector
-        theta = np.arctan2(-y, -x)
-        mag = np.sqrt(x * x + y * y) / steps
-        v = np.array([mag * np.cos(theta), mag * np.sin(theta)])
 
-        # momentum vector
-        m = curr - prev
-        m = m / np.sqrt(m[0] * m[0] + m[1] * m[1]) / steps
-
-        vect = alpha * v + (1 - alpha) * m
-        waypoints.append(curr + vect)
-
-        prev = curr
-        curr = curr + vect
-
-    for waypoint in waypoints:
-        print(str(waypoint[0]) + " " + str(waypoint[1]))
-
-    return waypoints
-'''
-
-def planner(state, K=10, N=100):
-    # create ROS publisher
-    publisher = rospy.Publisher('/path_planner/waypoint', State, queue_size=N)
-
-    # get configuration from parameter server
-    if rospy.has_param('~config'):
-        config = rospy.get_param('~config')
-    else:
-        print("Error: could not find configuration in parameter server")
-        exit(1)
-
-    # generate global path
+def planner(initial_state, final_state, K=10, N=100):
     path = []
+    
+    # unpack state vectors
+    xy_i = np.array([initial_state.x, initial_state.y])
+    theta_i = initial_state.theta
+    xy_f = np.array([final_state.x, final_state.y])
+    theta_f = final_state.theta
+ 
+    # calculate polynomial coefficients
+    alpha = np.array([K * np.cos(theta_f), K * np.sin(theta_f)]) - 3 * xy_f
+    beta = np.array([K * np.cos(theta_i), K * np.sin(theta_i)]) + 3 * xy_i
 
-    x = float(state[0])
-    y = float(state[1])
-    theta = np.radians(float(state[2]))
+    # create path with N points
+    for i in range(N - 1):
+        s = float(i) / float(N - 1)
+        point = s**3 * xy_f + s**2 * (s - 1) * alpha + s * (s - 1)**2 * beta - (s - 1)**3 * xy_i
 
-    state = np.array([x, y])
-    alpha = np.array([K * np.cos(theta) - 3 * x, K * np.sin(theta) - 3 * y])
-    beta = np.array([K, 0])
+        if i > 0:
+            heading = np.arctan2(point[1] - path[-1].y, point[0] - path[-1].x)
+        else:
+            heading = theta_i
 
-    for i in range(N):
-        s = float(i) / float(N)
-        waypoint = s**3 * state + s**2 * (s - 1) * alpha + s * (s - 1)**2 * beta
-        path.append(State(waypoint[0], waypoint[1], 0))
+        path.append(State(point[0], point[1], heading))
 
+    # force trajectory to converge
+    path.append(State(0, 0, 0))
+
+    return path
+
+
+def translate():
     '''
-    path = zeros(2, steps);
-    x = state(1);
-    y = state(2);
-    theta = state(3);
-    
-    alpha = [K*cos(theta) - 3*x; K*sin(theta) - 3*y];
-    beta = [K; 0];
-    
-    for i = 1:steps
-        s = i / steps;
-        path(:, i) = s^3 * [x; y] + s^2 * (s - 1) * alpha + s * (s - 1)^2 * beta;
-    end
-    ----------------------------------------------------------------------------------
     config = [0; 1];
     steps = 100;
     K = 25;
@@ -101,34 +67,105 @@ def planner(state, K=10, N=100):
         path_B(:, i) = path_A(:, i) + v;
     end
     '''
-
-    path[-1].theta = 1
-    timer = rospy.Rate(100) # 10hz
-
-    while not rospy.is_shutdown():
-        try:
-            publisher.publish(path[-1])
-            timer.sleep()
-        except:
-            pass
-
-    # publish entire path
-    #for waypoint in path:
-    #    print(waypoint)
-    #    publisher.publish(waypoint)
+    pass
 
 
-def main(args):
-    # check for correct number of arguments
-    if len(args) < 4:
-        print("Usage: path_planner x y theta")
+def distance(source_state, target_state):
+    # calculate Euclidean distance between states
+    x = target_state.x - source_state.x
+    y = target_state.y - source_state.y
+    d = np.sqrt(np.power(x, 2) + np.power(y, 2))
+
+    return d
+
+
+def transform(source_frame, target_frame, tf_buffer):
+    # get transformation from source frame to target frame
+    transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time()).transform
+
+    # unpack transformation
+    x = transform.translation.x
+    y = transform.translation.y
+    q = [transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w]
+    theta = tf.transformations.euler_from_quaternion(q)[-1]
+    state = State(x, y, theta)
+
+    return state
+
+
+def callback(msg):
+    global PATH
+
+    # treat target as the fixed frame
+    state_i = State(-msg.x, -msg.y, -msg.theta)
+    state_f = State(0, 0, 0)
+
+    # generate path to target
+    PATH = planner(state_i, state_f)
+
+
+def main():
+    global PATH
+    global DELTA
+
+    # get configuration from parameter server
+    if rospy.has_param('~config'):
+        config = rospy.get_param('~config')
+    else:
+        print("Error: could not find 'config' in parameter server")
+        exit(1)
+
+    # get robot frame from parameter server
+    if rospy.has_param('~robot_frame'):
+        robot_frame = rospy.get_param('~robot_frame')
+    else:
+        print("Error: could not find 'robot_frame' in parameter server")
+        exit(1)
+
+    # get goal frame from parameter server
+    if rospy.has_param('~goal_frame'):
+        goal_frame = rospy.get_param('~goal_frame')
+    else:
+        print("Error: could not find 'goal_frame' in parameter server")
         exit(1)
 
     # initialize ROS node
     rospy.init_node('path_planner', anonymous=True)
 
-    planner((sys.argv[1], sys.argv[2], sys.argv[3]))
+    # create ROS subscriber
+    subcriber = rospy.Subscriber('/path_planner/target', State, callback)
+
+    # create ROS publisher
+    publisher = rospy.Publisher('/path_planner/waypoint', State, queue_size=1)
+
+    # create tf buffer primed with a tf listener
+    tf_buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
+
+    # create a 1Hz timer
+    timer = rospy.Rate(1)
+
+    while not rospy.is_shutdown():
+        try:
+            # get the current state of the robot
+            state = transform(robot_frame, goal_frame, tf_buffer)
+
+            # check if robot is near current waypoint
+            if path:
+                if distance(state, path[0]) < DELTA:
+                    path.pop(0)
+
+            # determine next waypoint
+            if path:
+                waypoint = path[0]
+            else:
+                waypoint = state
+
+            publisher.publish(waypoint)
+            timer.sleep()
+        except:
+            pass
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

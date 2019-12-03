@@ -28,8 +28,8 @@ def controller(source_frame, target_frame, move=True):
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    # create a 10Hz timer
-    timer = rospy.Rate(100) # 10hz
+    # create a 100Hz timer
+    timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
         try:
