@@ -19,10 +19,10 @@ def callback(msg):
 def controller(source_frame, target_frame, move=True):
 
     global STATES, target
-    current_state = "REVERSE"
+    current_state = "MOVE"
 
     # create ROS publisher
-    turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=10)
+    turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=1)
 
     # create tf buffer primed with a tf listener
     tf_buffer = tf2_ros.Buffer()
@@ -39,24 +39,24 @@ def controller(source_frame, target_frame, move=True):
             
             
             #K1: Speed proportionnality constant
-            K1 = 1
+            K1 = 4
 
             #K2: Angular velocity proportionnality constant
-            K2 = -1
+            K2 = -2
 
             #Tolerance values for distance and angle
-            eps_d = 0.03
+            eps_d = 0.07
             eps_theta = 0.03
 
             #Distance in meters before the turtlebot starts slowing down
-            slowdown_threshold = 0.1
+            slowdown_threshold = 0.05
 
             #Turtlebot max speed in meters per sec
             max_speed = K1 * slowdown_threshold
 
             ########################### GET TRANSFORMATION ##########################3
 
-            '''
+            
             # get the transform from source_frame to target_frame
             transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             x = transform.transform.translation.x
@@ -64,13 +64,20 @@ def controller(source_frame, target_frame, move=True):
             q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
             
             theta = tft.euler_from_quaternion(q)[-1]
-            '''
+            
+            
+            x_w,y_w,theta_w = target.x, target.y, target.theta
+            last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
+            print("Last wp " + str(last_waypoint))
 
-            x,y,theta = target.x, target.y, target.theta
+            x = x - x_w
+            y = y - y_w
+            theta = theta - theta_w
             
             
             d = np.sqrt(x*x + y*y)
             theta_r = np.arctan2(-y, -x)
+            theta_r = theta_r - theta_w
             delta_theta = theta - theta_r
 
             #Correct the angle singularity
@@ -104,8 +111,10 @@ def controller(source_frame, target_frame, move=True):
             elif current_state == "STOP":
                 #Do nothing
 
+                '''
                 if abs(theta) > eps_theta:
                     next_state = "ADJUST"
+                '''
 
 
 
@@ -113,7 +122,7 @@ def controller(source_frame, target_frame, move=True):
             elif current_state == "MOVE":
 
                 #If you're farther than a certain threshhold value, go at max speed
-                if d > slowdown_threshold:
+                if d > slowdown_threshold or (not last_waypoint):
                     command.linear.x = max_speed
                     command.angular.z = K2 * delta_theta
 
@@ -123,7 +132,7 @@ def controller(source_frame, target_frame, move=True):
                     command.angular.z = K2 * delta_theta
 
                 #Transition happens zhen closer to goal than tolerance
-                if d < eps_d:
+                if d < eps_d and last_waypoint:
                     next_state = "ADJUST"
 
 
@@ -153,7 +162,8 @@ def controller(source_frame, target_frame, move=True):
             # publish control input
             turtlebot.publish(command)
 
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        except Exception as e:
+            print(e)
             pass
 
         timer.sleep()

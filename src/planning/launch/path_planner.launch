@@ -1,8 +1,8 @@
 <launch>
     <!-- Robot Configuration -->
     <arg name="config" default="[(0, 0)]"/>
-    <arg name="robot_frame" default="/ar_marker_5"/>
-    <arg name="goal_frame" default="/ar_marker_9"/>
+    <arg name="robot_frame" default="/ar_marker_2"/>
+    <arg name="goal_frame" default="/ar_marker_14"/>
 
     <!-- Planning Node -->
     <node name="path_planner"
@@ -11,7 +11,7 @@
           output="screen">
 
         <param name="config" value="$(arg config)"/>
-        <param name="robot_frame" value="$(arg robot_frame)")/>
-        <param name="goal_frame" value="$(arg goal_frame)")/>
+        <param name="robot_frame" value="$(arg robot_frame)"/>
+        <param name="goal_frame" value="$(arg goal_frame)"/>
     </node>
 </launch>
