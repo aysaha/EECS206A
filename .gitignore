@@ -2,3 +2,5 @@
 build/
 devel/
 src/CMakeLists.txt
+**/*.pyc
+.nfs*

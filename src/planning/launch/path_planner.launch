@@ -11,4 +11,15 @@
 
         <param name="config" value="$(arg config)" />
     </node>
+
+    <!--
+    <node name="group_frame"
+          pkg="planning"
+          type="group_frame.py"
+          args="change_this_frame"
+          output="screen">
+
+        <param name="config" value="$(arg config)" />
+    </node>
+    -->
 </launch>
