@@ -1,15 +1,29 @@
 #!/usr/bin/env python
 
 import numpy as np
+import matplotlib.pyplot as plt
 import rospy
 import tf
 import tf2_ros
 from planning.msg import State
-import matplotlib.pyplot as plt
 
 
-PATH = []
 DELTA = 0.05
+
+
+def draw(path, label, render=True):
+    # plot path
+    x = [point.x for point in path]
+    y = [point.y for point in path]
+    plt.plot(x, y, label=label, linestyle='dashed', marker='o')
+
+    # render graph
+    if render is True:
+        plt.title('State Trajectory')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.legend()
+        plt.show()
 
 
 def polar(source_state, target_state):
@@ -26,7 +40,11 @@ def polar(source_state, target_state):
 
 def transform(source_frame, target_frame, tf_buffer):
     # get transformation from source frame to target frame
-    transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time()).transform
+    while not rospy.is_shutdown():
+        try:
+            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time()).transform
+        except Exception as e:
+            print(e)
 
     # unpack transformation
     x = transform.translation.x
@@ -66,8 +84,7 @@ def translate(current_waypoint, previous_waypoint, local_frame):
     distance, angle = polar(State(0, 0, 0), State(local_frame[0], local_frame[1], 0))
 
 
-
-def planner(initial_state, final_state, K=10, N=100):
+def plan(initial_state, final_state, K=2, N=25):
     path = []
     
     # unpack state vectors
@@ -95,59 +112,36 @@ def planner(initial_state, final_state, K=10, N=100):
 
     # force trajectory to converge
     path.append(State(0, 0, 0))
-    plt.plot([s.x for s in path], [s.y for s in path],'bo')
-    plt.show()
-
 
     return path
 
 
-def callback(target):
-    global PATH
-
-    # treat target as the fixed frame
-    state_i = State(-target.x, -target.y, -target.theta)
-    state_f = State(0, 0, 0)
-
-    # generate path to target
-    PATH = planner(state_i, state_f)
-
-
 def main():
-    global PATH
     global DELTA
 
-    '''
     # get configuration from parameter server
-    #if rospy.has_param('~config'):
-    #    config = rospy.get_param('~config')
-    #else:
-    #    print("Error: could not find 'config' in parameter server")
-    #    exit(1)
+    if rospy.has_param('/path_planner/config'):
+        config = rospy.get_param('/path_planner/config')
+    else:
+        print("Error: could not find [config] in parameter server")
+        exit(1)
 
     # get robot frame from parameter server
-    if rospy.has_param('~robot_frame'):
-        robot_frame = rospy.get_param('~robot_frame')
+    if rospy.has_param('/path_planner/robot_frame'):
+        robot_frame = rospy.get_param('/path_planner/robot_frame')
     else:
-        print("Error: could not find 'robot_frame' in parameter server")
+        print("Error: could not find [robot_frame] in parameter server")
         exit(1)
 
     # get goal frame from parameter server
-    if rospy.has_param('~goal_frame'):
-        goal_frame = rospy.get_param('~goal_frame')
+    if rospy.has_param('/path_planner/goal_frame'):
+        goal_frame = rospy.get_param('/path_planner/goal_frame')
     else:
-        print("Error: could not find 'goal_frame' in parameter server")
+        print("Error: could not find [goal_frame] in parameter server")
         exit(1)
-    '''
-
-    robot_frame = "ar_marker_2"
-    goal_frame = "ar_marker_14"
 
     # initialize ROS node
     rospy.init_node('path_planner', anonymous=True)
-
-    # create ROS subscriber
-    #subcriber = rospy.Subscriber('/path_planner/target', State, callback)
 
     # create ROS publisher
     publisher = rospy.Publisher('/path_planner/waypoint', State, queue_size=1)
@@ -155,42 +149,55 @@ def main():
     # create tf buffer primed with a tf listener
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
-    
-    while True:
-        try:
-            target = transform(robot_frame, goal_frame, tf_buffer)
+
+    # generate paths to target
+    state = transform(robot_frame, goal_frame, tf_buffer)
+    path_a = plan(state, State(0, 0, 0), K=1)
+    path_b = plan(state, State(0, 0, 0), K=2)
+    path_c = plan(state, State(0, 0, 0), K=3)
+
+    # display planned paths
+    draw(path_a, "a", render=False)
+    draw(path_b, "b", render=False)
+    draw(path_c, "c", render=True)
+
+    # let user select path
+    while not rospy.is_shutdown():
+        response = raw_input("select path [a/b/c/n]: ")
+
+        if response == "a":
+            path = path_a
             break
-        except:
-            pass
+        if response == "b":
+            path = path_b
+            break
+        if response == "c":
+            path = path_c
+            break
+        elif response == "n":
+            path = []
+            break
 
-    points = 20
-    gain = 5
-    PATH = planner(target, State(0, 0, 0), K=gain, N=points)
-
-    # create a 50Hz timer
-    timer = rospy.Rate(50)
+    # create a 10Hz timer
+    timer = rospy.Rate(10)
 
     while not rospy.is_shutdown():
-        try:
-            # get the current state of the robot
-            state = transform(robot_frame, goal_frame, tf_buffer)
+        # get the current state of the robot
+        state = transform(robot_frame, goal_frame, tf_buffer)
 
-            # check if robot is near current waypoint
-            if PATH:
-                distance, angle = polar(state, PATH[0])
-                print("waypoint #" + str(points - len(PATH)) + ": " + str(distance) + "m")
+        # check if robot is near current waypoint
+        if path:
+            distance, angle = polar(state, path[0])
 
-                if distance < DELTA:
-                    PATH.pop(0)
+            if distance < DELTA:
+                path.pop(0)
 
-            # determine next waypoint
-            if PATH:
-                waypoint = PATH[0]
-                publisher.publish(waypoint)
-            
-            timer.sleep()
-        except:
-            pass
+        # publish next waypoint
+        if path:
+            publisher.publish(path[0])
+
+        # synchronize node 
+        timer.sleep()
 
 
 if __name__ == '__main__':
