@@ -1,0 +1,15 @@
+<launch>
+    <!-- Robot Configuration -->
+    <arg name="config" default="[(0, 0)]"/>
+    <arg name="robot_frames" default="[ar_marker_2]"/>
+
+    <!-- Planning Node -->
+    <node name="group_frame_publisher"
+          pkg="perception"
+          type="group_frame.py"
+          output="screen">
+
+        <param name="config" value="$(arg config)"/>
+        <rosparam param="robot_frames" subst_value="True">$(arg robot_frames)</rosparam>
+    </node>
+</launch>

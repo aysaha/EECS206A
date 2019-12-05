@@ -1,7 +1,7 @@
 # EECS206A
 Introduction to Robotics Final Project
 
-#Getting started with path controller:
+### Getting started with path controller:
 
 	*Clone repo/pull changes
 	*catkin_make in root directory
@@ -18,10 +18,14 @@ Introduction to Robotics Final Project
 
 	*Launch rviz, add a camera->image_raw topic, and a TF object. Set the fixed marker as the fixed frame, disable all tf frames except for usb_cam and both ar markers
 
-#Running path controller
+### Running path controller
 
 	*Optionnaly, define a goal frame relative to the fixed ar_marker: rosrun tf static_transform_publisher x y z yaw pitch roll fixed_marker_id goal_frame 100
 
 	*Run the node to keep the goal frame active in case of loss of sight: rosrun control frame_publisher.py frame
 
 	*Run the controller: rosrun control motion_controller.py turtlebot_frame goal_frame
+
+### External resources
+
+* Kalman filter: http://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/

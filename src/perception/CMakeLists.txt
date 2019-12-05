@@ -8,8 +8,15 @@ project(perception)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
+  message_filters
+  nav_msgs
   roscpp
   rospy
+  tf
+  tf2_msgs
+  tf2_ros
+  tf_conversions
 )
 
 ## System dependencies are found with CMake's conventions
@@ -69,7 +76,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
+#   geometry_msgs#   nav_msgs#   tf2_msgs
 # )
 
 ################################################
@@ -104,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES perception
-#  CATKIN_DEPENDS roscpp rospy
+#  CATKIN_DEPENDS geometry_msgs message_filters nav_msgs roscpp rospy tf tf2_msgs tf2_ros tf_conversions
 #  DEPENDS system_lib
 )
 

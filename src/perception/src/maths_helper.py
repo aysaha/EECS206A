@@ -20,6 +20,10 @@ def diff(p1, p2):
     return (p1[0] - p2[0], p1[1] - p2[1])
 
 
+def add(p1, p2):
+    return (p1[0] + p2[0], p1[1] + p2[1])
+
+
 def norm(point):
     return sqrt(point[0]**2 + point[1]**2)
 
@@ -32,6 +36,8 @@ def div(p1, p2): # Return polar coordinates
     new_phase = phase(p1) - phase(p2)
     if new_phase <= -pi:
         new_phase += 2*pi
+    if new_phase > pi:
+        new_phase -= 2*pi
     return (norm(p1)/norm(p2), new_phase)
 
 

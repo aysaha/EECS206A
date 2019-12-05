@@ -4,7 +4,7 @@ from group_frame import GroupFramePublisher
 
 
 class TestGroupFrame(unittest.TestCase):
-    def test_compute_frame(self):
+    def test_compute_frame_2_robots(self):
 		config = [(0, 1), (0, -1)]
 		group_frame_publisher = GroupFramePublisher(config)
 		translations = [(4, 0), (0, 0)]
@@ -14,8 +14,7 @@ class TestGroupFrame(unittest.TestCase):
 		self.assertEqual(origin, (2, 0))
 		self.assertAlmostEqual(angle, pi/2)
 
-
-    def test_compute_frame_2(self):
+    def test_compute_frame__square_robots(self):
 		config = [(0, 1), (-1, 0), (0, -1), (1, 0)]
 		group_frame_publisher = GroupFramePublisher(config)
 		translations = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
