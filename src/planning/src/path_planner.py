@@ -42,14 +42,15 @@ def transform(source_frame, target_frame, tf_buffer):
     # get transformation from source frame to target frame
     while not rospy.is_shutdown():
         try:
-            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time()).transform
+            tfm = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time.now(), rospy.Duration(1))
+            break
         except Exception as e:
             print(e)
 
     # unpack transformation
-    x = transform.translation.x
-    y = transform.translation.y
-    q = [transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w]
+    x = tfm.transform.translation.x
+    y = tfm.transform.translation.y
+    q = [tfm.transform.rotation.x, tfm.transform.rotation.y, tfm.transform.rotation.z, tfm.transform.rotation.w]
     theta = tf.transformations.euler_from_quaternion(q)[-1]
     state = State(x, y, theta)
 
@@ -119,6 +120,9 @@ def plan(initial_state, final_state, K=2, N=25):
 def main():
     global DELTA
 
+    # initialize ROS node
+    rospy.init_node('path_planner', anonymous=True)
+
     # get configuration from parameter server
     if rospy.has_param('/path_planner/config'):
         config = rospy.get_param('/path_planner/config')
@@ -132,16 +136,13 @@ def main():
     else:
         print("Error: could not find [robot_frame] in parameter server")
         exit(1)
-
+    
     # get goal frame from parameter server
     if rospy.has_param('/path_planner/goal_frame'):
         goal_frame = rospy.get_param('/path_planner/goal_frame')
     else:
         print("Error: could not find [goal_frame] in parameter server")
         exit(1)
-
-    # initialize ROS node
-    rospy.init_node('path_planner', anonymous=True)
 
     # create ROS publisher
     publisher = rospy.Publisher('/path_planner/waypoint', State, queue_size=1)
@@ -152,31 +153,10 @@ def main():
 
     # generate paths to target
     state = transform(robot_frame, goal_frame, tf_buffer)
-    path_a = plan(state, State(0, 0, 0), K=1)
-    path_b = plan(state, State(0, 0, 0), K=2)
-    path_c = plan(state, State(0, 0, 0), K=3)
+    path = plan(state, State(0, 0, 0))
 
     # display planned paths
-    draw(path_a, "a", render=False)
-    draw(path_b, "b", render=False)
-    draw(path_c, "c", render=True)
-
-    # let user select path
-    while not rospy.is_shutdown():
-        response = raw_input("select path [a/b/c/n]: ")
-
-        if response == "a":
-            path = path_a
-            break
-        if response == "b":
-            path = path_b
-            break
-        if response == "c":
-            path = path_c
-            break
-        elif response == "n":
-            path = []
-            break
+    draw(path, "waypoint", render=True)
 
     # create a 10Hz timer
     timer = rospy.Rate(10)
@@ -198,7 +178,6 @@ def main():
 
         # synchronize node 
         timer.sleep()
-
 
 if __name__ == '__main__':
     main()

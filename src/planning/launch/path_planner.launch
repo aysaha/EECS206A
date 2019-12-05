@@ -1,15 +1,11 @@
 <launch>
     <!-- Robot Configuration -->
     <arg name="config" default="[(0, 0)]"/>
-    <arg name="robot_frame" default="ar_marker_2"/>
-    <arg name="goal_frame" default="ar_marker_14"/>
+    <arg name="robot_frame" default="ar_marker_0"/>
+    <arg name="goal_frame" default="ar_marker_1"/>
 
     <!-- Planning Node -->
-    <node name="path_planner"
-          pkg="planning"
-          type="path_planner.py"
-          output="screen">
-
+    <node name="path_planner" pkg="planning" type="path_planner.py" output="screen">
         <param name="config" value="$(arg config)"/>
         <param name="robot_frame" value="$(arg robot_frame)"/>
         <param name="goal_frame" value="$(arg goal_frame)"/>
