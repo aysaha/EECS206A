@@ -1,8 +1,8 @@
 <launch>
     <!-- Robot Configuration -->
     <arg name="config" default="[(0, 0)]"/>
-    <arg name="robot_frame" default="ar_marker_0"/>
-    <arg name="goal_frame" default="ar_marker_1"/>
+    <arg name="robot_frame" default="ar_marker_2"/>
+    <arg name="goal_frame" default="ar_marker_8"/>
 
     <!-- Planning Node -->
     <node name="path_planner" pkg="planning" type="path_planner.py" output="screen">

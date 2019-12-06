@@ -10,6 +10,11 @@ from planning.msg import State
 
 STATES = ["MOVE", "ADJUST", "STOP", "REVERSE"]
 target = State()
+last_target = State()
+last_theta = None
+
+integral = 0
+
 
 def callback(msg):
     global target
@@ -18,34 +23,36 @@ def callback(msg):
 
 def controller(source_frame, target_frame, move=True):
 
-    global STATES, target
+    global STATES, target, last_target, integral, TIMER_FREQ, last_theta
     current_state = "MOVE"
 
     # create ROS publisher
-    turtlebot = rospy.Publisher('/cmd_vel_mux/input/teleop', Twist, queue_size=1)
+    turtlebot = rospy.Publisher('/pink/cmd_vel_mux/input/teleop', Twist, queue_size=1)
 
     # create tf buffer primed with a tf listener
     tf_buffer = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
     # create a 100Hz timer
-    timer = rospy.Rate(100)
+    TIMER_FREQ = 100
+    timer = rospy.Rate(TIMER_FREQ)
 
     while not rospy.is_shutdown():
         try:
 
             ############################ PARAMETERS ##################################
-
-            
             
             #K1: Speed proportionnality constant
-            K1 = 4
+            K1 = 2
 
             #K2: Angular velocity proportionnality constant
-            K2 = -2
+            Kp = -2
+            Ki = -1
+            Kd = -1
+            Kw = 0.9
 
             #Tolerance values for distance and angle
-            eps_d = 0.07
+            eps_d = 0.1
             eps_theta = 0.03
 
             #Distance in meters before the turtlebot starts slowing down
@@ -62,9 +69,14 @@ def controller(source_frame, target_frame, move=True):
             x = transform.transform.translation.x
             y = transform.transform.translation.y
             q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
-            
+
             theta = tft.euler_from_quaternion(q)[-1]
             
+            if target.x != last_target.x:
+                print("Reset integral!")
+                integral = 0
+                last_target = target
+
             
             x_w,y_w,theta_w = target.x, target.y, target.theta
             last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
@@ -72,13 +84,26 @@ def controller(source_frame, target_frame, move=True):
 
             x = x - x_w
             y = y - y_w
-            theta = theta - theta_w
+            theta = theta
             
-            
+            if x > 0:
+                print("FREAKING OUT!!!!!!!!!!")
+                continue
+
+
+
             d = np.sqrt(x*x + y*y)
             theta_r = np.arctan2(-y, -x)
-            theta_r = theta_r - theta_w
+            theta_r = theta_r
             delta_theta = theta - theta_r
+
+            integral = integral*Kw + delta_theta / TIMER_FREQ
+
+            if last_theta != None:
+                derivate = (theta - last_theta)*TIMER_FREQ
+            else:
+                derivate = None
+            last_theta = None
 
             #Correct the angle singularity
             if delta_theta > 3.14:
@@ -94,7 +119,8 @@ def controller(source_frame, target_frame, move=True):
 
             print("theta_r: " + str(theta_r))
             print("distance: " + str(d))
-            print("theta: "+ str(theta))
+            print("delta_theta: "+ str(delta_theta))
+            print("integral: " + str(integral))
 
             print(target.x)
             
@@ -124,12 +150,12 @@ def controller(source_frame, target_frame, move=True):
                 #If you're farther than a certain threshhold value, go at max speed
                 if d > slowdown_threshold or (not last_waypoint):
                     command.linear.x = max_speed
-                    command.angular.z = K2 * delta_theta
+                    command.angular.z = Kp * delta_theta #+ Ki * integral
 
                 #Then slow down as you get closer
                 else:
                     command.linear.x = min(K1 * d,max_speed)
-                    command.angular.z = K2 * delta_theta
+                    command.angular.z = Kp * delta_theta #+ Ki * integral
 
                 #Transition happens zhen closer to goal than tolerance
                 if d < eps_d and last_waypoint:
@@ -139,7 +165,7 @@ def controller(source_frame, target_frame, move=True):
             ################# ADJUST STATE ##################
             elif current_state == "ADJUST":
                 command.linear.x = 0
-                command.angular.z = K2 * theta
+                command.angular.z = Ki * theta
 
                 if abs(theta) < eps_theta:
                     next_state = "STOP"

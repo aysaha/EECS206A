@@ -153,10 +153,14 @@ def main():
 
     # generate paths to target
     state = transform(robot_frame, goal_frame, tf_buffer)
-    path = plan(state, State(0, 0, 0))
+    N = 25
+    path = plan(state, State(0, 0, 0), N=N)
 
     # display planned paths
     draw(path, "waypoint", render=True)
+
+    all_paths = []
+    all_paths.append(path)
 
     # create a 10Hz timer
     timer = rospy.Rate(10)
@@ -170,7 +174,13 @@ def main():
             distance, angle = polar(state, path[0])
 
             if distance < DELTA:
+                #if N > 0:
+                #    N -= 1
+                #    print("recomputing path [N = " + str(N) + "]")
+                #    path = plan(state, State(0, 0, 0), N=N)
                 path.pop(0)
+                #    all_paths.append(path)
+                    #draw(path, str(N), render=True)
 
         # publish next waypoint
         if path:
@@ -178,6 +188,12 @@ def main():
 
         # synchronize node 
         timer.sleep()
+
+    for i, paths in enumerate(all_paths):
+        draw(paths, str(i), render=False)
+
+    draw([], "", render=True)
+
 
 if __name__ == '__main__':
     main()
