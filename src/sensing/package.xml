@@ -7,6 +7,18 @@
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <build_depend>planning</build_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <build_export_depend>tf</build_export_depend>
+  <build_export_depend>tf2_ros</build_export_depend>
+  <build_export_depend>planning</build_export_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>planning</exec_depend>
 
   <export>
   </export>

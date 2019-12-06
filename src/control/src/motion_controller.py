@@ -6,10 +6,12 @@ import rospy
 import tf2_ros
 import tf.transformations as tft
 from geometry_msgs.msg import Twist
+import matplotlib.pyplot as plt
 from planning.msg import State
 
 STATES = ["MOVE", "ADJUST", "STOP", "REVERSE"]
-target = State()
+state = None
+target = None
 last_target = State()
 last_theta = None
 
@@ -21,9 +23,13 @@ def callback(msg):
     target = msg
 
 
+def state_callback(msg):
+    global state
+    state = msg
+
 def controller(source_frame, target_frame, move=True):
 
-    global STATES, target, last_target, integral, TIMER_FREQ, last_theta
+    global STATES, state, target, last_target, integral, TIMER_FREQ, last_theta
     current_state = "MOVE"
 
     # create ROS publisher
@@ -47,8 +53,8 @@ def controller(source_frame, target_frame, move=True):
 
             #K2: Angular velocity proportionnality constant
             Kp = -2
-            Ki = -1
-            Kd = -1
+            Ki = 0
+            Kd = 0
             Kw = 0.9
 
             #Tolerance values for distance and angle
@@ -63,7 +69,7 @@ def controller(source_frame, target_frame, move=True):
 
             ########################### GET TRANSFORMATION ##########################3
 
-            
+            '''
             # get the transform from source_frame to target_frame
             transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
             x = transform.transform.translation.x
@@ -71,25 +77,39 @@ def controller(source_frame, target_frame, move=True):
             q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
 
             theta = tft.euler_from_quaternion(q)[-1]
-            
+            '''
+
+            x,y,theta = (0, 0, 0)
+
+            if state is None:
+            	#print("state is None")
+                continue
+            else:
+                x = state.x
+                y = state.y
+                theta = state.theta
+
+
+          	if target is None:
+          		#print("target is None")
+          		continue 
+
+
             if target.x != last_target.x:
                 print("Reset integral!")
                 integral = 0
                 last_target = target
-
+                plt.plot([1,1], [1,1], "bo")
+               	plt.show()
             
             x_w,y_w,theta_w = target.x, target.y, target.theta
             last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
-            print("Last wp " + str(last_waypoint))
+            #print("Last wp " + str(last_waypoint))
 
             x = x - x_w
             y = y - y_w
             theta = theta
             
-            if x > 0:
-                print("FREAKING OUT!!!!!!!!!!")
-                continue
-
 
 
             d = np.sqrt(x*x + y*y)
@@ -106,23 +126,28 @@ def controller(source_frame, target_frame, move=True):
             last_theta = None
 
             #Correct the angle singularity
+            '''
             if delta_theta > 3.14:
                 delta_theta -= 6.28
+                print("singularity detected")
             if delta_theta < -3.14:
                 delta_theta += 6.28
+                print("singularity detected")
+			'''
 
 
             command = Twist()
 
             next_state = current_state
             print(current_state)
+            #print(target)
 
-            print("theta_r: " + str(theta_r))
-            print("distance: " + str(d))
-            print("delta_theta: "+ str(delta_theta))
-            print("integral: " + str(integral))
+            #print("theta_r: " + str(theta_r))
+            #print("distance: " + str(d))
+            #print("delta_theta: "+ str(delta_theta))
+            #print("integral: " + str(integral))
 
-            print(target.x)
+            #print(target.x)
             
 
             ################# REVERSE STATE ##################
@@ -205,6 +230,7 @@ def main(args):
     rospy.init_node('motion_controller', anonymous=True)
     
     rospy.Subscriber('/path_planner/waypoint', State, callback)
+    rospy.Subscriber('/state_observer/state', State, state_callback)
 
     # run controller
     if len(args) == 4:

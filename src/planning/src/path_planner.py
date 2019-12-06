@@ -9,6 +9,7 @@ from planning.msg import State
 
 
 DELTA = 0.05
+STATE = None
 
 
 def draw(path, label, render=True):
@@ -85,7 +86,7 @@ def translate(current_waypoint, previous_waypoint, local_frame):
     distance, angle = polar(State(0, 0, 0), State(local_frame[0], local_frame[1], 0))
 
 
-def plan(initial_state, final_state, K=2, N=25):
+def plan(initial_state, final_state, K=2, N=10):
     path = []
     
     # unpack state vectors
@@ -117,12 +118,20 @@ def plan(initial_state, final_state, K=2, N=25):
     return path
 
 
+def callback(msg):
+    global STATE
+    
+    STATE = msg
+
+
 def main():
     global DELTA
+    global STATE
 
     # initialize ROS node
     rospy.init_node('path_planner', anonymous=True)
 
+    '''
     # get configuration from parameter server
     if rospy.has_param('/path_planner/config'):
         config = rospy.get_param('/path_planner/config')
@@ -143,44 +152,43 @@ def main():
     else:
         print("Error: could not find [goal_frame] in parameter server")
         exit(1)
+    '''
+
+    # create ROS subscriber
+    subscriber = rospy.Subscriber('/state_observer/state', State, callback)
 
     # create ROS publisher
     publisher = rospy.Publisher('/path_planner/waypoint', State, queue_size=1)
 
     # create tf buffer primed with a tf listener
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    #tf_buffer = tf2_ros.Buffer()
+    #tf_listener = tf2_ros.TransformListener(tf_buffer)
+
+    # wait for a valid state
+    while STATE is None:
+        pass
 
     # generate paths to target
-    state = transform(robot_frame, goal_frame, tf_buffer)
-    N = 25
-    path = plan(state, State(0, 0, 0), N=N)
+    #state = transform(robot_frame, goal_frame, tf_buffer)
+    path = plan(STATE, State(0, 0, 0))
 
     # display planned paths
     draw(path, "waypoint", render=True)
-
-    all_paths = []
-    all_paths.append(path)
 
     # create a 10Hz timer
     timer = rospy.Rate(10)
 
     while not rospy.is_shutdown():
         # get the current state of the robot
-        state = transform(robot_frame, goal_frame, tf_buffer)
+        #state = transform(robot_frame, goal_frame, tf_buffer)
 
         # check if robot is near current waypoint
         if path:
-            distance, angle = polar(state, path[0])
+            distance, angle = polar(STATE, path[0])
 
             if distance < DELTA:
-                #if N > 0:
-                #    N -= 1
-                #    print("recomputing path [N = " + str(N) + "]")
-                #    path = plan(state, State(0, 0, 0), N=N)
+                print("reached waypoint - " + str(len(path)) + "remaining")
                 path.pop(0)
-                #    all_paths.append(path)
-                    #draw(path, str(N), render=True)
 
         # publish next waypoint
         if path:
@@ -188,11 +196,6 @@ def main():
 
         # synchronize node 
         timer.sleep()
-
-    for i, paths in enumerate(all_paths):
-        draw(paths, str(i), render=False)
-
-    draw([], "", render=True)
 
 
 if __name__ == '__main__':
