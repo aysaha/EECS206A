@@ -52,10 +52,11 @@ def controller(source_frame, target_frame, move=True):
             K1 = 2
 
             #K2: Angular velocity proportionnality constant
-            Kp = -2
-            Ki = 0
+            Kp = -4
+            Ki = -2
+
             Kd = 0
-            Kw = 0.9
+            cap = .2
 
             #Tolerance values for distance and angle
             eps_d = 0.1
@@ -79,6 +80,7 @@ def controller(source_frame, target_frame, move=True):
             theta = tft.euler_from_quaternion(q)[-1]
             '''
 
+            ######### Get next waypoint target ##########
             x,y,theta = (0, 0, 0)
 
             if state is None:
@@ -94,36 +96,39 @@ def controller(source_frame, target_frame, move=True):
           		#print("target is None")
           		continue 
 
-
+            #Integral reset if tqrget has changed
             if target.x != last_target.x:
                 print("Reset integral!")
                 integral = 0
                 last_target = target
-                plt.plot([1,1], [1,1], "bo")
-               	plt.show()
             
+
             x_w,y_w,theta_w = target.x, target.y, target.theta
             last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
             #print("Last wp " + str(last_waypoint))
 
             x = x - x_w
             y = y - y_w
-            theta = theta
+            theta = theta - theta_w
             
 
-
             d = np.sqrt(x*x + y*y)
-            theta_r = np.arctan2(-y, -x)
-            theta_r = theta_r
-            delta_theta = theta - theta_r
+            #theta_r = np.arctan2(-y, -x)
+        
+            #delta_theta = theta - theta_w
 
-            integral = integral*Kw + delta_theta / TIMER_FREQ
+            integral = integral + theta / TIMER_FREQ
+            if integral > cap:
+                integral = cap
+            if integral < -cap:
+                integral = - cap
 
             if last_theta != None:
                 derivate = (theta - last_theta)*TIMER_FREQ
             else:
                 derivate = None
-            last_theta = None
+            last_theta = theta
+
 
             #Correct the angle singularity
             '''
@@ -139,12 +144,12 @@ def controller(source_frame, target_frame, move=True):
             command = Twist()
 
             next_state = current_state
-            print(current_state)
+            #print(current_state)
+
             #print(target)
 
-            #print("theta_r: " + str(theta_r))
+            print("theta: " + str(theta))
             #print("distance: " + str(d))
-            #print("delta_theta: "+ str(delta_theta))
             #print("integral: " + str(integral))
 
             #print(target.x)
@@ -160,13 +165,8 @@ def controller(source_frame, target_frame, move=True):
 
             ################### STOP STATE ####################
             elif current_state == "STOP":
+                pass
                 #Do nothing
-
-                '''
-                if abs(theta) > eps_theta:
-                    next_state = "ADJUST"
-                '''
-
 
 
             ################# MOVE STATE #####################
@@ -175,14 +175,14 @@ def controller(source_frame, target_frame, move=True):
                 #If you're farther than a certain threshhold value, go at max speed
                 if d > slowdown_threshold or (not last_waypoint):
                     command.linear.x = max_speed
-                    command.angular.z = Kp * delta_theta #+ Ki * integral
+                    command.angular.z = Kp * theta + Ki * integral
 
                 #Then slow down as you get closer
                 else:
                     command.linear.x = min(K1 * d,max_speed)
-                    command.angular.z = Kp * delta_theta #+ Ki * integral
+                    command.angular.z = Kp * theta #+ Ki * integral
 
-                #Transition happens zhen closer to goal than tolerance
+                #Transition happens when closer to goal than tolerance
                 if d < eps_d and last_waypoint:
                     next_state = "ADJUST"
 

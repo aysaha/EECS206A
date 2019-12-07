@@ -8,7 +8,7 @@ import tf2_ros
 from planning.msg import State
 
 
-DELTA = 0.05
+DELTA = 0.15
 STATE = None
 
 

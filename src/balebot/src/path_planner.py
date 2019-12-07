@@ -92,10 +92,16 @@ def main():
         pass
 
     # generate paths to target
+    print('---------------')
+    print("x: " + str(STATE.x))
+    print("y: " + str(STATE.y))
+    print("theta: " + str(STATE.theta * 180 / np.pi))
+    print('---------------')
     path = plan(STATE, State(0, 0, 0))
 
     # display planned paths
     draw(path, "waypoint")
+    exit(0)
 
     # create a 100Hz timer
     timer = rospy.Rate(100)
