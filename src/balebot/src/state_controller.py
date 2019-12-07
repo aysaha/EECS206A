@@ -8,7 +8,7 @@ from balebot.msg import State
 
 TARGET = None
 STATE = None
-I = 0
+
 
 def polar(source_state, target_state):
     # use the source state as the reference
@@ -34,34 +34,19 @@ def state_callback(msg):
     STATE = msg
 
 
-def control(Kv=1, Kw=0.25):
-    global STATE, TARGET, I
+def control(Kv=0.5, Kw=2):
+    global STATE, TARGET
 
     command = Twist()
 
     distance, angle = polar(STATE, TARGET)
 
-    '''
-    print('-----------')
-    print(STATE)
-    print('-----------')
-    print(TARGET)
-    print('-----------')
-    print(angle * 180 / np.pi)
-    print('-----------')
-    exit(0)
-    '''
     if TARGET.x == 0 and TARGET.y == 0 and TARGET.theta == 0:
-        print("[state_controller]: moving to last waypoint")
         command.linear.x = Kv * distance
-        command.angular.z = 0 
+        command.angular.z = Kw * (angle - STATE.theta)
     else:
-        command.linear.x = 0.5
-        command.angular.z = -Kw * angle
-    
-    I += 1
-    if I % 100 == 0:
-        print("[state_controller]: " + str(angle * 180 / np.pi) + "deg")
+        command.linear.x = 0.25
+        command.angular.z = Kw * (angle - STATE.theta)
 
     return command
 

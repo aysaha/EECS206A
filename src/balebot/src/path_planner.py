@@ -106,7 +106,7 @@ def main():
             distance, angle = polar(STATE, path[0])
 
             if distance < DELTA:
-                print("[path_planner]: reached waypoint " + str(10 - len(path)))
+                print("[path_planner]: reached waypoint " + str(11 - len(path)))
                 path.pop(0)
 
         # publish next waypoint

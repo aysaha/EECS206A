@@ -6,17 +6,18 @@ from turtlesim.msg import Pose
 from balebot.msg import State
 
 
-TARGET = State(7.5, 7.5, 0 * np.pi / 180)
+TARGET = State(7, 7, 0 * np.pi / 180)
 STATE = None
 
 
 def callback(msg):
     global TARGET, STATE
 
-    x = msg.x - TARGET.x
-    y = msg.y - TARGET.y
+    # !!! rigid body transformation only works when theta=0 !!!
+    x = msg.x * np.cos(TARGET.theta) - msg.y * np.sin(TARGET.theta) - TARGET.x
+    y = msg.x * np.sin(TARGET.theta) + msg.y * np.cos(TARGET.theta) - TARGET.y
     theta = msg.theta - TARGET.theta
-    STATE = State(x * np.cos(theta) - y * np.sin(theta), x * np.sin(theta) + y * np.cos(theta), theta)
+    STATE = State(x, y, theta)
 
 
 def main():
