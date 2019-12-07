@@ -1,0 +1,17 @@
+<launch>
+    <arg name="robot_frame" default="/turtle1/pose"/>
+
+    <!-- Simulator Node -->
+    <node name="simulator" pkg="turtlesim" type="turtlesim_node"/>
+
+    <!-- Sensing Node -->
+    <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">
+        <param name="robot_frame" value="$(arg robot_frame)"/>
+    </node>
+    
+    <!-- Planning Node -->
+    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen"/>
+
+    <!-- Control Node -->
+    <node name="state_controller" pkg="balebot" type="state_controller.py" output="screen"/>
+</launch>
