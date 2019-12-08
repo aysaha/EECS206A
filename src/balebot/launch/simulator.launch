@@ -1,17 +1,36 @@
 <launch>
-    <arg name="robot_frame" default="/turtle1/pose"/>
+    <!-- Simulator Configuration -->
+    <arg name="simulation" value="True"/>
+    
+    <!-- Robot 1 Configuration -->
+    <arg name="robot1_frame" value="/turtle1/pose"/>
+    <arg name="robot1_config" value="0, -1"/>
+    <arg name="robot1_control" value="/turtle1/cmd_vel"/>
+    
+    <!-- Robot 2 Configuration -->
+    <arg name="robot2_frame" value="/turtle2/pose"/>
+    <arg name="robot2_config" value="0, 1"/>
+    <arg name="robot2_control" value="/turtle2/cmd_vel"/>
 
     <!-- Simulator Node -->
     <node name="simulator" pkg="turtlesim" type="turtlesim_node"/>
 
     <!-- Sensing Node -->
     <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">
-        <param name="robot_frame" value="$(arg robot_frame)"/>
+        <param name="simulation" value="$(arg simulation)" type="bool"/>
+        <param name="robot1_frame" value="$(arg robot1_frame)" type="string"/>
+        <param name="robot2_frame" value="$(arg robot2_frame)" type="string"/>
     </node>
-    
+
     <!-- Planning Node -->
-    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen"/>
+    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen">
+        <param name="robot1_config" value="$(arg robot1_config)" type="string"/>
+        <param name="robot2_config" value="$(arg robot2_config)" type="string"/>
+    </node>
 
     <!-- Control Node -->
-    <node name="state_controller" pkg="balebot" type="state_controller.py" output="screen"/>
+    <node name="state_controller" pkg="balebot" type="state_controller.py" output="screen">
+        <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
+        <param name="robot2_control" value="$(arg robot2_control)" type="string"/>
+    </node>
 </launch>

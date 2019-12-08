@@ -6,8 +6,10 @@ from geometry_msgs.msg import Twist
 from balebot.msg import State
 
 
-TARGET = None
-STATE = None
+TARGET1 = None
+TARGET2 = None
+STATE1 = None
+STATE2 = None
 
 
 def polar(source_state, target_state):
@@ -45,7 +47,7 @@ def control(Kv=0.5, Kw=2):
         command.linear.x = Kv * distance
         command.angular.z = Kw * (angle - STATE.theta)
     else:
-        command.linear.x = 0.25
+        command.linear.x = 0.5
         command.angular.z = Kw * (angle - STATE.theta)
 
     return command
@@ -58,12 +60,23 @@ def main():
     # initialize ROS node
     rospy.init_node('state_controller')
     
-    # create ROS subscriber
-    rospy.Subscriber('/path_planner/target', State, target_callback)
-    rospy.Subscriber('/state_observer/state', State, state_callback)
+    # load data from parameter server
+    try:
+        robot1_control = rospy.get_param('/state_controller/robot1_control')
+        robot2_control = rospy.get_param('/state_controller/robot2_control')
+    except Exception as e:
+        print("[state_controller]: could not find " + str(e) + " in parameter server")
+        exit(1)
+
+    # create ROS subscribers
+    rospy.Subscriber('/path_planner/target1', State, target1_callback)
+    rospy.Subscriber('/path_planner/target2', State, target2_callback)
+    rospy.Subscriber('/state_observer/state1', State, state1_callback)
+    rospy.Subscriber('/state_observer/state2', State, state2_callback)
     
-    # create ROS publisher
-    publisher = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=1)
+    # create ROS publishers
+    publisher1 = rospy.Publisher(robot1_control, Twist, queue_size=1)
+    publisher2 = rospy.Publisher(robot2_control, Twist, queue_size=1)
 
     # create a 100Hz timer
     timer = rospy.Rate(100)

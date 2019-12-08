@@ -6,8 +6,9 @@ import rospy
 from balebot.msg import State
 
 
-DELTA = 0.05
-STATE = None
+DELTA = 0.15
+STATE1 = None
+STATE2 = None
 
 
 def draw(path, label, render=True):
@@ -69,42 +70,60 @@ def plan(initial_state, final_state, K=2, N=10):
     return path
 
 
-def callback(msg):
-    global STATE
+def callback1(msg):
+    global STATE1
     
-    STATE = msg
+    STATE1 = msg
+
+
+def callback2(msg):
+    global STATE2
+    
+    STATE2 = msg
 
 
 def main():
-    global DELTA, STATE
+    global DELTA, STATE1, STATE2
 
     # initialize ROS node
     rospy.init_node('path_planner')
+    
+    # load data from parameter server
+    try:
+        robot1_config = [float(val) for val in rospy.get_param('/path_planner/robot1_config').split(',')]
+        robot2_config = [float(val) for val in rospy.get_param('/path_planner/robot2_config').split(',')]
+    except Exception as e:
+        print("[path_planner]: could not find " + str(e) + " in parameter server")
+        exit(1)
 
-    # create ROS subscriber
-    rospy.Subscriber('/state_observer/state', State, callback)
+    # create ROS subscribers
+    rospy.Subscriber('/state_observer/state1', State, callback1)
+    rospy.Subscriber('/state_observer/state2', State, callback2)
 
-    # create ROS publisher
-    publisher = rospy.Publisher('/path_planner/target', State, queue_size=1)
+    # create ROS publishers
+    publisher1 = rospy.Publisher('/path_planner/target1', State, queue_size=1)
+    publisher2 = rospy.Publisher('/path_planner/target2', State, queue_size=1)
 
-    # wait for a valid state
-    while STATE is None:
-        pass
+    # wait for accurate states
+    rospy.Delay(10)
+
+    # estimate body frame
+    x = ((STATE1.x - robot1_config[0]) + (STATE2.x - robot2_config[0])) / 2
+    y = ((STATE1.y - robot1_config[1]) + (STATE2.y - robot2_config[1])) / 2
+    theta = (STATE1.theta + STATE2.theta) / 2
+    body_state = State(x, y, theta)
+
+    print(body_state)
+    exit(0)
 
     # generate paths to target
-    print('---------------')
-    print("x: " + str(STATE.x))
-    print("y: " + str(STATE.y))
-    print("theta: " + str(STATE.theta * 180 / np.pi))
-    print('---------------')
     path = plan(STATE, State(0, 0, 0))
 
     # display planned paths
     draw(path, "waypoint")
-    exit(0)
 
-    # create a 100Hz timer
-    timer = rospy.Rate(100)
+    # create a 10Hz timer
+    timer = rospy.Rate(10)
 
     while not rospy.is_shutdown():
         # check if robot is near current waypoint

@@ -15,6 +15,7 @@ find_package(
   turtlesim
   geometry_msgs
   std_msgs
+  std_srvs
   message_generation
 )
 
@@ -112,6 +113,7 @@ catkin_package(
   turtlesim
   geometry_msgs
   std_msgs
+  std_srvs
   message_runtime
 )
 
