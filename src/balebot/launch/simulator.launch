@@ -29,7 +29,8 @@
     </node>
 
     <!-- Control Node -->
-    <node name="state_controller" pkg="balebot" type="state_controller.py" output="screen">
+    <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
+    <!--node name="state_controller" pkg="balebot" type="state_controller.py" output="screen"-->
         <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
         <param name="robot2_control" value="$(arg robot2_control)" type="string"/>
     </node>

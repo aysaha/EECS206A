@@ -1,0 +1,34 @@
+<launch>
+    <!-- Simulator Configuration -->
+    <arg name="simulation" value="False"/>
+    
+    <arg name="goal_frame" default="ar_marker_5"/>
+    
+    <!-- Robot 1 Configuration -->
+    <arg name="robot1_frame" value="ar_marker_2"/>
+    <arg name="robot1_config" value="0, 0"/>
+    <arg name="robot1_control" value="/pink/cmd_vel_mux/input/teleop"/>
+    
+    <!-- Robot 2 Configuration -->
+    <arg name="robot2_frame" value=""/>
+    <arg name="robot2_config" value=""/>
+    <arg name="robot2_control" value=""/>
+    
+    <!-- Sensing Node -->
+    <node name="state_observer" pkg="sensing" type="state_observer.py" output="screen">
+        <param name="robot_frame" value="$(arg robot1_frame)"/>
+        <param name="goal_frame" value="$(arg goal_frame)"/>
+    </node>
+
+    <!-- Planning Node -->
+    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen">
+        <param name="robot1_config" value="$(arg robot1_config)" type="string"/>
+        <param name="robot2_config" value="$(arg robot2_config)" type="string"/>
+    </node>
+
+    <!-- Control Node -->
+    <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
+        <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
+        <param name="robot2_control" value="$(arg robot2_control)" type="string"/>
+    </node>
+</launch>

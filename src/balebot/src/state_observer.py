@@ -7,7 +7,7 @@ from turtlesim.srv import Spawn, TeleportAbsolute
 from std_srvs.srv import Empty
 from balebot.msg import State
 
-TARGET = State(7, 7, -90 * np.pi / 180)
+TARGET = State(2, 3, 90 * np.pi / 180)
 STATE1 = None
 STATE2 = None
 

@@ -105,7 +105,7 @@ def main():
     publisher2 = rospy.Publisher('/path_planner/target2', State, queue_size=1)
 
     # wait for accurate states
-    rospy.Delay(10)
+    rospy.sleep(1)
 
     # estimate body frame
     x = ((STATE1.x - robot1_config[0]) + (STATE2.x - robot2_config[0])) / 2
@@ -113,11 +113,8 @@ def main():
     theta = (STATE1.theta + STATE2.theta) / 2
     body_state = State(x, y, theta)
 
-    print(body_state)
-    exit(0)
-
     # generate paths to target
-    path = plan(STATE, State(0, 0, 0))
+    path = plan(STATE1, State(0, 0, 0))
 
     # display planned paths
     draw(path, "waypoint")
@@ -128,7 +125,7 @@ def main():
     while not rospy.is_shutdown():
         # check if robot is near current waypoint
         if path:
-            distance, angle = polar(STATE, path[0])
+            distance, angle = polar(STATE1, path[0])
 
             if distance < DELTA:
                 print("[path_planner]: reached waypoint " + str(11 - len(path)))
@@ -136,7 +133,7 @@ def main():
 
         # publish next waypoint
         if path:
-            publisher.publish(path[0])
+            publisher1.publish(path[0])
 
         # synchronize node 
         timer.sleep()

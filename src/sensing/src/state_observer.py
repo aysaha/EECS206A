@@ -78,7 +78,7 @@ def main():
     goal_frame = "ar_marker_8"
 
     # create ROS publisher
-    publisher = rospy.Publisher('/state_observer/state', State, queue_size=1)
+    publisher = rospy.Publisher('/state_observer/state1', State, queue_size=1)
 
     #Subscribe to the odom frame
     #sub_odom = rospy.Subscriber("/pink/odom", Odometry, odom_callback)

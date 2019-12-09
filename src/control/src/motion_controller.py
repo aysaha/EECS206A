@@ -27,17 +27,14 @@ def state_callback(msg):
     global state
     state = msg
 
-def controller(source_frame, target_frame, move=True):
+def controller(move=True):
 
     global STATES, state, target, last_target, integral, TIMER_FREQ, last_theta
     current_state = "MOVE"
 
     # create ROS publisher
-    turtlebot = rospy.Publisher('/pink/cmd_vel_mux/input/teleop', Twist, queue_size=1)
-
-    # create tf buffer primed with a tf listener
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    #turtlebot = rospy.Publisher('/pink/cmd_vel_mux/input/teleop', Twist, queue_size=1)
+    turtlebot = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=1)
 
     # create a 100Hz timer
     TIMER_FREQ = 100
@@ -49,7 +46,7 @@ def controller(source_frame, target_frame, move=True):
             ############################ PARAMETERS ##################################
             
             #K1: Speed proportionnality constant
-            K1 = 2
+            K1 = 4
 
             #K2: Angular velocity proportionnality constant
             Kp = -4
@@ -57,6 +54,8 @@ def controller(source_frame, target_frame, move=True):
 
             Kd = 0
             cap = .2
+
+            max_rot = np.pi / 2
 
             #Tolerance values for distance and angle
             eps_d = 0.1
@@ -67,18 +66,6 @@ def controller(source_frame, target_frame, move=True):
 
             #Turtlebot max speed in meters per sec
             max_speed = K1 * slowdown_threshold
-
-            ########################### GET TRANSFORMATION ##########################3
-
-            '''
-            # get the transform from source_frame to target_frame
-            transform = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
-            x = transform.transform.translation.x
-            y = transform.transform.translation.y
-            q = [transform.transform.rotation.x, transform.transform.rotation.y, transform.transform.rotation.z, transform.transform.rotation.w]
-
-            theta = tft.euler_from_quaternion(q)[-1]
-            '''
 
             ######### Get next waypoint target ##########
             x,y,theta = (0, 0, 0)
@@ -148,7 +135,7 @@ def controller(source_frame, target_frame, move=True):
 
             #print(target)
 
-            print("theta: " + str(theta))
+            #print("theta: " + str(theta * 180 / np.pi))
             #print("distance: " + str(d))
             #print("integral: " + str(integral))
 
@@ -179,8 +166,8 @@ def controller(source_frame, target_frame, move=True):
 
                 #Then slow down as you get closer
                 else:
-                    command.linear.x = min(K1 * d,max_speed)
-                    command.angular.z = Kp * theta #+ Ki * integral
+                    command.linear.x = K1 * x
+                    command.angular.z = Kp * theta + Ki * integral
 
                 #Transition happens when closer to goal than tolerance
                 if d < eps_d and last_waypoint:
@@ -210,6 +197,9 @@ def controller(source_frame, target_frame, move=True):
                 rospy.sleep(1)
                 continue
 
+            command.linear.x = np.clip(command.linear.x, 0, max_speed)
+            command.angular.z = np.clip(command.angular.z, -max_rot, max_rot)
+
             # publish control input
             turtlebot.publish(command)
 
@@ -220,23 +210,18 @@ def controller(source_frame, target_frame, move=True):
         timer.sleep()
 
 
-def main(args):
-    # check for correct number of arguments
-    if len(args) < 3:
-        print("Usage: motion_controller source_frame target_frame")
-        exit(1)
-
+def main():
     # initialize ROS node
     rospy.init_node('motion_controller', anonymous=True)
     
-    rospy.Subscriber('/path_planner/waypoint', State, callback)
-    rospy.Subscriber('/state_observer/state', State, state_callback)
+    rospy.Subscriber('/path_planner/target1', State, callback)
+    rospy.Subscriber('/state_observer/state1', State, state_callback)
 
     # run controller
-    if len(args) == 4:
-        controller(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 2:
+        controller(sys.argv[1])
     else:
-        controller(sys.argv[1], sys.argv[2])
+        controller()
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()

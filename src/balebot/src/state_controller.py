@@ -24,38 +24,49 @@ def polar(source_state, target_state):
     return distance, angle
 
 
-def target_callback(msg):
-    global TARGET
+def target1_callback(msg):
+    global TARGET1
 
-    TARGET = msg
+    TARGET1 = msg
 
 
-def state_callback(msg):
-    global STATE
+def target2_callback(msg):
+    global TARGET2
 
-    STATE = msg
+    TARGET2 = msg
+
+
+def state1_callback(msg):
+    global STATE1
+
+    STATE1 = msg
+
+
+def state2_callback(msg):
+    global STATE2
+
+    STATE2 = msg
 
 
 def control(Kv=0.5, Kw=2):
-    global STATE, TARGET
+    global STATE1, TARGET1
 
     command = Twist()
 
-    distance, angle = polar(STATE, TARGET)
+    distance, angle = polar(STATE1, TARGET1)
 
-    if TARGET.x == 0 and TARGET.y == 0 and TARGET.theta == 0:
+    if TARGET1.x == 0 and TARGET1.y == 0 and TARGET1.theta == 0:
         command.linear.x = Kv * distance
-        command.angular.z = Kw * (angle - STATE.theta)
+        command.angular.z = Kw * (angle - STATE1.theta)
     else:
         command.linear.x = 0.5
-        command.angular.z = Kw * (angle - STATE.theta)
+        command.angular.z = Kw * (angle - STATE1.theta)
 
     return command
 
 
 def main():
-    global TARGET
-    global STATE
+    global TARGET1, TARGET2, STATE1, STATE2
     
     # initialize ROS node
     rospy.init_node('state_controller')
@@ -83,13 +94,16 @@ def main():
 
     while not rospy.is_shutdown():
         # generate control input
-        if STATE is not None and TARGET is not None:
-            command = control()
+        if STATE1 is not None and TARGET1 is not None:
+            command1 = control()
         else:
-            command = Twist()
+            command1 = Twist()
+        
+        command2 = Twist()
 
         # publish command
-        publisher.publish(command)
+        publisher1.publish(command1)
+        publisher2.publish(command2)
 
         # synchronize node
         timer.sleep()
