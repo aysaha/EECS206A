@@ -11,7 +11,7 @@
     
     <!-- Robot 2 Configuration -->
     <arg name="robot2_frame" value=""/>
-    <arg name="robot2_config" value=""/>
+    <arg name="robot2_config" value="0, 0"/>
     <arg name="robot2_control" value=""/>
     
     <!-- Sensing Node -->

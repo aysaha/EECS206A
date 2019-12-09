@@ -33,8 +33,8 @@ def controller(move=True):
     current_state = "MOVE"
 
     # create ROS publisher
-    #turtlebot = rospy.Publisher('/pink/cmd_vel_mux/input/teleop', Twist, queue_size=1)
-    turtlebot = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=1)
+    turtlebot = rospy.Publisher('/pink/cmd_vel_mux/input/teleop', Twist, queue_size=1)
+    #turtlebot = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=1)
 
     # create a 100Hz timer
     TIMER_FREQ = 100
@@ -46,23 +46,24 @@ def controller(move=True):
             ############################ PARAMETERS ##################################
             
             #K1: Speed proportionnality constant
-            K1 = 4
+            K1 = 0.6
+
 
             #K2: Angular velocity proportionnality constant
-            Kp = -4
-            Ki = -2
+            Kp = -2
+            Ki = -1
 
             Kd = 0
             cap = .2
 
-            max_rot = np.pi / 2
+            max_rot = 1.57
 
             #Tolerance values for distance and angle
-            eps_d = 0.1
+            eps_d = 0.05
             eps_theta = 0.03
 
             #Distance in meters before the turtlebot starts slowing down
-            slowdown_threshold = 0.05
+            slowdown_threshold = 0.15
 
             #Turtlebot max speed in meters per sec
             max_speed = K1 * slowdown_threshold
@@ -129,7 +130,7 @@ def controller(move=True):
 
 
             command = Twist()
-
+            #print(last_waypoint)
             next_state = current_state
             #print(current_state)
 
@@ -161,7 +162,7 @@ def controller(move=True):
 
                 #If you're farther than a certain threshhold value, go at max speed
                 if d > slowdown_threshold or (not last_waypoint):
-                    command.linear.x = max_speed
+                    command.linear.x = K1*d #max_speed
                     command.angular.z = Kp * theta + Ki * integral
 
                 #Then slow down as you get closer

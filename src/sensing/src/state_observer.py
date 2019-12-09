@@ -14,7 +14,7 @@ last_odm_frame = None
 
 def avg_states(states_list):
     avg_x = 0
-    avg y = 0
+    avg_y = 0
     avg_theta = 0
 
     for s in states_list:
@@ -49,13 +49,18 @@ def odom_callback(msg):
 
 def transform(source_frame, target_frame, tf_buffer):
     # get transformation from source frame to target frame
-    try:
-        frame = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time.now(), rospy.Duration(1))
-    except:
-        frame = None
+    while not rospy.is_shutdown():
+        try:
+            frame = tf_buffer.lookup_transform(target_frame, source_frame, rospy.Time())
+            break;
+            #, rospy.Duration(1)
+        except:
+            print('no transorm')
+            frame = None
 
     # convert transformation to State
     if frame is not None:
+        #print(str(frame.header.stamp.nsecs/10000000.0))
         y = frame.transform.translation.y
         x = frame.transform.translation.x
         q = [frame.transform.rotation.x, frame.transform.rotation.y, frame.transform.rotation.z, frame.transform.rotation.w]
@@ -69,13 +74,14 @@ def transform(source_frame, target_frame, tf_buffer):
 
 def main():
     global last_odm_frame, current_odm_frame
+    states = []
 
     # initialize ROS node
     rospy.init_node('state_observer', anonymous=True)
 
     #Markers
     robot_frame = "ar_marker_2"
-    goal_frame = "ar_marker_8"
+    goal_frame = "ar_marker_5"
 
     # create ROS publisher
     publisher = rospy.Publisher('/state_observer/state1', State, queue_size=1)
@@ -88,7 +94,7 @@ def main():
     tf_listener = tf2_ros.TransformListener(tf_buffer)
 
     # create a 10Hz timer
-    timer = rospy.Rate(10)
+    timer = rospy.Rate(100)
     prev_state = None
     odm_vector = None
     cam_vector = None
@@ -104,6 +110,13 @@ def main():
         # get the current state of the robot
         state = transform(robot_frame, goal_frame, tf_buffer)
 
+        if state is not None:
+            states.append(state)
+        if len(states) > 3:
+            del states[0]
+
+
+
         '''
         if current_odm_frame is not None and state is not None:
             if last_odm_frame is not None:
@@ -118,19 +131,10 @@ def main():
 
         # publish state
         if state is not None:
-            avg_x += state.x
-            avg_y += state.y
-            avg_theta += state.theta
+            #publisher.publish(state)
+            publisher.publish(avg_states(states))
 
-            
-            if i % 10 == 0:
-                avg_x /= 10
-                avg_y /= 10
-                avg_theta /= 10
-                publisher.publish(State(avg_x, avg_y, avg_theta * 180 / np.pi))
-                avg_x = 0
-                avg_y = 0 
-                avg_theta = 0
+
 
             #if prev_state is not None:
             #    cam_vector = State(state.x - prev_state.x, state.y - prev_state.y, state.theta - prev_state.theta)

@@ -105,13 +105,16 @@ def main():
     publisher2 = rospy.Publisher('/path_planner/target2', State, queue_size=1)
 
     # wait for accurate states
-    rospy.sleep(1)
+
+    while not rospy.is_shutdown():
+        if STATE1 is not None:
+            break
 
     # estimate body frame
-    x = ((STATE1.x - robot1_config[0]) + (STATE2.x - robot2_config[0])) / 2
-    y = ((STATE1.y - robot1_config[1]) + (STATE2.y - robot2_config[1])) / 2
-    theta = (STATE1.theta + STATE2.theta) / 2
-    body_state = State(x, y, theta)
+    #x = ((STATE1.x - robot1_config[0]) + (STATE2.x - robot2_config[0])) / 2
+    #y = ((STATE1.y - robot1_config[1]) + (STATE2.y - robot2_config[1])) / 2
+    #theta = (STATE1.theta + STATE2.theta) / 2
+    #body_state = State(x, y, theta)
 
     # generate paths to target
     path = plan(STATE1, State(0, 0, 0))
@@ -120,7 +123,7 @@ def main():
     draw(path, "waypoint")
 
     # create a 10Hz timer
-    timer = rospy.Rate(10)
+    timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
         # check if robot is near current waypoint
