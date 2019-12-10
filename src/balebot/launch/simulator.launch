@@ -4,7 +4,7 @@
 
     <!-- Trajectory Configuration -->
     <arg name="start_frame" value="5, 5, 0"/>
-    <arg name="end_frame" value="5, 8, 180"/>
+    <arg name="end_frame" value="6, 7, 90"/>
     
     <!-- Robot 1 Configuration -->
     <arg name="robot1_frame" value="/turtle1/pose"/>
@@ -17,7 +17,7 @@
     <arg name="robot2_control" value="/turtle2/cmd_vel"/>
 
     <!-- Simulator Node -->
-    <node name="simulator" pkg="turtlesim" type="turtlesim_node" output="log"/>
+    <node name="simulator" pkg="turtlesim" type="turtlesim_node" output="screen"/>
 
     <!-- Sensing Node -->
     <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">

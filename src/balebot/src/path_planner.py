@@ -4,12 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rospy
 from balebot.msg import State
-from state_observer import rotate
-
+from state_observer import transform
 
 DELTA = 0.15
 CURVE = 2
 POINTS = 12
+START_STATE = None
 ROBOT1_STATE = None
 ROBOT2_STATE = None
 GROUP_STATE = None
@@ -73,6 +73,12 @@ def plan(initial_state, final_state, K=2, N=10):
     return path
 
 
+def start_state_callback(msg):
+    global START_STATE
+
+    START_STATE = msg
+
+
 def robot1_state_callback(msg):
     global ROBOT1_STATE
 
@@ -99,7 +105,8 @@ def main():
     
     # load data from parameter server
     try:
-        simulation = rospy.get_param('/state_observer/simulation')
+        start_frame = rospy.get_param('/state_observer/start_frame')
+        end_frame = rospy.get_param('/state_observer/end_frame')
         robot1_config = rospy.get_param('/path_planner/robot1_config')
         robot2_config = rospy.get_param('/path_planner/robot2_config')
     except Exception as e:
@@ -107,6 +114,7 @@ def main():
         exit(1)
 
     # create ROS subscribers
+    rospy.Subscriber('/state_observer/start_state', State, start_state_callback)
     rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
     rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
     rospy.Subscriber('/state_observer/group_state', State, group_state_callback)
@@ -116,22 +124,15 @@ def main():
     robot2_publisher = rospy.Publisher('/path_planner/robot2_target', State, queue_size=1)
     group_publisher = rospy.Publisher('/path_planner/group_target', State, queue_size=1)
 
-    # wait for a good state estimate
-    if simulation is True:
-        rospy.sleep(1)
-    else:
-        rospy.sleep(5)
-
-    while ROBOT1_STATE is None:
-        pass
+    # wait for accurate state estimates
+    rospy.sleep(1)
 
     # generate paths to target
     robot1_path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
-    robot2_path = []
-    group_path = []
+    #group_path = plan(START_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
 
     # display planned paths
-    draw(robot1_path, "waypoint")
+    draw(robot1_path, "robot1")
 
     # create a 100Hz timer
     timer = rospy.Rate(100)

@@ -76,7 +76,7 @@ def robot1_frame_callback(msg):
     while len(ROBOT1_STATES) > N:
         ROBOT1_STATES.pop(0)
 
-    ROBOT1_STATES.append(transform(msg, END_STATE))
+    ROBOT1_STATES.append(transform(msg, END_STATE, tf_buffer=None))
 
 
 def robot2_frame_callback(msg):
@@ -85,7 +85,7 @@ def robot2_frame_callback(msg):
     while len(ROBOT2_STATES) > N:
         ROBOT2_STATES.pop(0)
 
-    ROBOT2_STATES.append(transform(msg, END_STATE))
+    ROBOT2_STATES.append(transform(msg, END_STATE, tf_buffer=None))
 
 
 def main():
@@ -108,6 +108,7 @@ def main():
         exit(1)
 
     # create ROS publishers
+    start_publisher = rospy.Publisher('/state_observer/start_state', State, queue_size=1)
     robot1_publisher = rospy.Publisher('/state_observer/robot1_state', State, queue_size=1)
     robot2_publisher = rospy.Publisher('/state_observer/robot2_state', State, queue_size=1)
     group_publisher = rospy.Publisher('/state_observer/group_state', State, queue_size=1)
@@ -157,9 +158,12 @@ def main():
     timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
-        if simulation is False:
-            ROBOT1_STATES.append(transform(robot1_frame, END_FRAME))
-            ROBOT2_STATES.append(transform(robot2_frame, END_FRAME))
+        if simulation is True:
+            start_state = transform(START_STATE, END_STATE, tf_buffer=None)
+        else:
+            start_state = transform(start_frame, end_frame, tf_buffer=tf_buffer)
+            ROBOT1_STATES.append(transform(robot1_frame, end_frame, tf_buffer=tf_buffer))
+            ROBOT2_STATES.append(transform(robot2_frame, end_frame, tf_buffer=tf_buffer))
 
         # determine robot 1 state
         while len(ROBOT1_STATES) > N:
@@ -180,6 +184,7 @@ def main():
         group_state = State(x , y, theta)
 
         # publish states
+        start_publisher.publish(start_state)
         robot1_publisher.publish(robot1_state)
         robot2_publisher.publish(robot2_state)
         group_publisher.publish(group_state)

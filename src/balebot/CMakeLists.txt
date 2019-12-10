@@ -16,6 +16,7 @@ find_package(
   tf2_ros
   turtlesim
   geometry_msgs
+  tf2_msgs
   std_msgs
   std_srvs
   message_generation
@@ -116,6 +117,7 @@ catkin_package(
   tf2_ros
   turtlesim
   geometry_msgs
+  tf2_msgs
   std_msgs
   std_srvs
   message_runtime

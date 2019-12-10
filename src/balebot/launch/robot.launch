@@ -5,7 +5,7 @@
     <!-- Trajectory Configuration -->
     <arg name="start_frame" value="ar_marker_X"/>
     <arg name="end_frame" value="ar_marker_Y"/>
-    
+
     <!-- Robot 1 Configuration -->
     <arg name="robot1_frame" value="ar_marker_Z"/>
     <arg name="robot1_config" value="-0.5"/>
@@ -17,7 +17,7 @@
     <arg name="robot2_control" value="/green/cmd_vel_mux/input/teleop"/>
 
     <!-- Frame Publisher Node -->
-    <node name="frame_publisher" pkg="control" type="frame_publisher.py" args="$(arg end_frame)" output="log">
+    <node name="frame_publisher" pkg="balebot" type="frame_publisher.py"  output="screen"/>
 
     <!-- Sensing Node -->
     <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">
@@ -33,7 +33,7 @@
         <param name="robot1_config" value="$(arg robot1_config)" type="double"/>
         <param name="robot2_config" value="$(arg robot2_config)" type="double"/>
     </node>
-    
+
     <!-- Control Node -->
     <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
         <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
