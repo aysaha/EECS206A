@@ -125,11 +125,10 @@ def main():
     group_publisher = rospy.Publisher('/path_planner/group_target', State, queue_size=1)
 
     # wait for accurate state estimates
-    rospy.sleep(1)
+    rospy.sleep(5)
 
     # generate paths to target
     robot1_path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
-    #group_path = plan(START_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
 
     # display planned paths
     draw(robot1_path, "robot1")

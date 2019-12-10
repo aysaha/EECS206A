@@ -57,8 +57,9 @@ def transform(robot_frame, fixed_frame, tf_buffer=None):
         while not rospy.is_shutdown():
             try:
                 tf_frame = tf_buffer.lookup_transform(fixed_frame, robot_frame, rospy.Time())
+
                 break
-            except:
+            except Exception as e:
                 pass
     
         # convert transformation to state
@@ -106,12 +107,12 @@ def main():
     except Exception as e:
         print("[state_observer]: could not find " + str(e) + " in parameter server")
         exit(1)
-
     # create ROS publishers
     start_publisher = rospy.Publisher('/state_observer/start_state', State, queue_size=1)
     robot1_publisher = rospy.Publisher('/state_observer/robot1_state', State, queue_size=1)
     robot2_publisher = rospy.Publisher('/state_observer/robot2_state', State, queue_size=1)
     group_publisher = rospy.Publisher('/state_observer/group_state', State, queue_size=1)
+    robot2_error_publiser = rospy.Publisher('/state_observer/robot2_error', State, queue_size=1)
 
     if simulation is True:
         # create ROS subscribers
@@ -164,6 +165,7 @@ def main():
             start_state = transform(start_frame, end_frame, tf_buffer=tf_buffer)
             ROBOT1_STATES.append(transform(robot1_frame, end_frame, tf_buffer=tf_buffer))
             ROBOT2_STATES.append(transform(robot2_frame, end_frame, tf_buffer=tf_buffer))
+            robot2_error = transform(robot2_frame,"robot2_static", tf_buffer=tf_buffer)
 
         # determine robot 1 state
         while len(ROBOT1_STATES) > N:
@@ -177,6 +179,7 @@ def main():
         
         robot2_state = average(ROBOT2_STATES)
 
+
         # determine group state
         x = (robot1_state.x + robot2_state.x) / 2
         y = (robot1_state.y - robot1_config + robot2_state.y - robot2_config) / 2
@@ -188,6 +191,7 @@ def main():
         robot1_publisher.publish(robot1_state)
         robot2_publisher.publish(robot2_state)
         group_publisher.publish(group_state)
+        robot2_error_publiser.publish(robot2_error)
 
         # synchronize node
         timer.sleep()

@@ -19,9 +19,6 @@
     <!-- Frame Publisher Node -->
     <node name="frame_publisher" pkg="balebot" type="frame_publisher.py"  output="screen"/>
 
-    <!-- Static Transform Publisher -->
-    <node name="static_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 $(arg robot2_config) 0 0 0 0 $(arg robot1_frame) robot2_static 10" output="screen"/>
-
     <!-- Sensing Node -->
     <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">
         <param name="simulation" value="$(arg simulation)" type="bool"/>
@@ -29,17 +26,16 @@
         <param name="end_frame" value="$(arg end_frame)" type="string"/>
         <param name="robot1_frame" value="$(arg robot1_frame)" type="string"/>
         <param name="robot2_frame" value="$(arg robot2_frame)" type="string"/>
-    </node>
-
-    <!-- Planning Node -->
-    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen">
         <param name="robot1_config" value="$(arg robot1_config)" type="double"/>
         <param name="robot2_config" value="$(arg robot2_config)" type="double"/>
     </node>
 
-    <!-- Control Node -->
-    <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
+    <!-- Following Node -->
+    <node name="follow_controller" pkg="balebot" type="follow_controller.py" output="screen">
         <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
         <param name="robot2_control" value="$(arg robot2_control)" type="string"/>
+        <param name="robot1_config" value="$(arg robot1_config)" type="double"/>
+        <param name="robot2_config" value="$(arg robot2_config)" type="double"/>
     </node>
+
 </launch>
