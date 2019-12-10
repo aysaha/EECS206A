@@ -10,6 +10,8 @@ from balebot.msg import State
 ROBOT1_STATE = None
 ROBOT2_STATE = None
 GROUP_STATE = None
+ROBOT1_TARGET = None
+ROBOT2_TARGET = None
 GROUP_TARGET = None
 
 
@@ -34,23 +36,18 @@ def polar(source_state, target_state):
     return distance, angle
 '''
 
-def control(robot1_config, robot2_config, Kv=1, Kw=2):
-    global GROUP_STATE, GROUP_TARGET
+def control(robot1_config, robot2_config, Vx=0.5, Wz=0.25):
+    global ROBOT1_TARGET
 
     robot1_command = Twist()
     robot2_command = Twist()
  
-    '''
-    if GROUP_STATE is not None and GROUP_TARGET is not None:
-        error_theta = GROUP_TARGET.theta - GROUP_STATE.theta
-        W = Kw * error_theta
-        
-        robot1_command.angular.z = W
-        robot1_command.linear.x = 0.25 + W * abs(robot1_config)
-        
-        robot2_command.angular.z = W
-        robot2_command.linear.x = 0.25 + W * abs(robot2_config)
-    '''
+    if ROBOT1_TARGET is not None:
+        robot1_command.linear.x = Vx - Wz * robot1_config
+        robot1_command.angular.z = Wz
+    
+        robot2_command.linear.x = Vx - Wz * robot2_config
+        robot2_command.angular.z = Wz
 
     return robot1_command, robot2_command
 
@@ -72,6 +69,18 @@ def group_state_callback(msg):
     global GROUP_STATE
 
     GROUP_STATE = msg
+
+
+def robot1_target_callback(msg):
+    global ROBOT1_TARGET
+
+    ROBOT1_TARGET = msg
+
+
+def robot2_target_callback(msg):
+    global ROBOT2_TARGET
+
+    ROBOT2_TARGET = msg
 
 
 def group_target_callback(msg):
@@ -98,6 +107,8 @@ def main():
     rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
     rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
     rospy.Subscriber('/state_observer/group_state', State, group_state_callback)
+    rospy.Subscriber('/path_planner/robot1_target', State, robot1_target_callback)
+    rospy.Subscriber('/path_planner/robot2_target', State, robot2_target_callback)
     rospy.Subscriber('/path_planner/group_target', State, group_target_callback)
     
     # create ROS publishers

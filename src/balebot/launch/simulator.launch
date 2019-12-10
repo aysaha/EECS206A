@@ -4,7 +4,7 @@
 
     <!-- Trajectory Configuration -->
     <arg name="start_frame" value="5, 5, 0"/>
-    <arg name="end_frame" value="6, 6, 0"/>
+    <arg name="end_frame" value="5, 8, 180"/>
     
     <!-- Robot 1 Configuration -->
     <arg name="robot1_frame" value="/turtle1/pose"/>
@@ -35,7 +35,7 @@
     </node>
 
     <!-- Control Node -->
-    <!--node name="state_controller" pkg="balebot" type="state_controller.py" output="screen"-->
+    <!-- node name="state_controller" pkg="balebot" type="state_controller.py" output="screen"-->
     <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
         <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
         <param name="robot2_control" value="$(arg robot2_control)" type="string"/>

@@ -126,26 +126,27 @@ def main():
         pass
 
     # generate paths to target
-    path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
+    robot1_path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
+    robot2_path = []
+    group_path = []
 
     # display planned paths
-    draw(path, "waypoint")
+    draw(robot1_path, "waypoint")
 
     # create a 100Hz timer
     timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
-        # check if robot is near current waypoint
-        if path and ROBOT1_STATE is not None:
-            distance, angle = polar(ROBOT1_STATE, path[0])
+        if robot1_path and ROBOT1_STATE is not None:
+            distance, angle = polar(ROBOT1_STATE, robot1_path[0])
 
             if distance < DELTA:
-                print("[path_planner]: reached waypoint " + str(POINTS + 1 - len(path)))
-                path.pop(0)
+                print("[path_planner]: robot1 reached waypoint " + str(POINTS + 1 - len(robot1_path)))
+                robot1_path.pop(0)
 
         # publish next waypoint
-        if path:
-            robot1_publisher.publish(path[0])
+        if robot1_path:
+            robot1_publisher.publish(robot1_path[0])
 
         # synchronize node 
         timer.sleep()
