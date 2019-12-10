@@ -12,6 +12,8 @@ find_package(
   REQUIRED
   COMPONENTS
   rospy
+  tf
+  tf2_ros
   turtlesim
   geometry_msgs
   std_msgs
@@ -110,6 +112,8 @@ generate_messages(
 catkin_package(
   CATKIN_DEPENDS
   rospy
+  tf
+  tf2_ros
   turtlesim
   geometry_msgs
   std_msgs

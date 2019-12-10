@@ -4,11 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import rospy
 from balebot.msg import State
+from state_observer import rotate
 
 
 DELTA = 0.15
-STATE1 = None
-STATE2 = None
+CURVE = 2
+POINTS = 12
+ROBOT1_STATE = None
+ROBOT2_STATE = None
+GROUP_STATE = None
 
 
 def draw(path, label, render=True):
@@ -52,91 +56,96 @@ def plan(initial_state, final_state, K=2, N=10):
     beta = np.array([K * np.cos(theta_i), K * np.sin(theta_i)]) + 3 * xy_i
 
     # create path with N points
-    for i in range(N - 1):
+    for i in range(N):
         s = float(i) / float(N - 1)
         point = s**3 * xy_f + s**2 * (s - 1) * alpha + s * (s - 1)**2 * beta - (s - 1)**3 * xy_i
 
-        if i > 0:
-            distance, angle = polar(path[-1], State(point[0], point[1], 0))
-            heading = angle
-        else:
+        if i == 0:
             heading = theta_i
+        elif i == N - 1:
+            heading = theta_f
+        else:
+            distance, angle = polar(path[-1], State(point[0], point[1], 0))
+            heading = angle + theta_f
 
         path.append(State(point[0], point[1], heading))
-
-    # force trajectory to converge
-    path.append(State(0, 0, 0))
 
     return path
 
 
-def callback1(msg):
-    global STATE1
-    
-    STATE1 = msg
+def robot1_state_callback(msg):
+    global ROBOT1_STATE
+
+    ROBOT1_STATE = msg
 
 
-def callback2(msg):
-    global STATE2
-    
-    STATE2 = msg
+def robot2_state_callback(msg):
+    global ROBOT2_STATE
+
+    ROBOT2_STATE = msg
+
+
+def group_state_callback(msg):
+    global GROUP_STATE
+
+    GROUP_STATE = msg
 
 
 def main():
-    global DELTA, STATE1, STATE2
+    global DELTA, CURVE, POINTS, ROBOT1_STATE, ROBOT2_STATE
 
     # initialize ROS node
     rospy.init_node('path_planner')
     
     # load data from parameter server
     try:
-        robot1_config = [float(val) for val in rospy.get_param('/path_planner/robot1_config').split(',')]
-        robot2_config = [float(val) for val in rospy.get_param('/path_planner/robot2_config').split(',')]
+        simulation = rospy.get_param('/state_observer/simulation')
+        robot1_config = rospy.get_param('/path_planner/robot1_config')
+        robot2_config = rospy.get_param('/path_planner/robot2_config')
     except Exception as e:
         print("[path_planner]: could not find " + str(e) + " in parameter server")
         exit(1)
 
     # create ROS subscribers
-    rospy.Subscriber('/state_observer/state1', State, callback1)
-    rospy.Subscriber('/state_observer/state2', State, callback2)
+    rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
+    rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
+    rospy.Subscriber('/state_observer/group_state', State, group_state_callback)
 
-    # create ROS publishers
-    publisher1 = rospy.Publisher('/path_planner/target1', State, queue_size=1)
-    publisher2 = rospy.Publisher('/path_planner/target2', State, queue_size=1)
+    # create ROS publisher
+    robot1_publisher = rospy.Publisher('/path_planner/robot1_target', State, queue_size=1)
+    robot2_publisher = rospy.Publisher('/path_planner/robot2_target', State, queue_size=1)
+    group_publisher = rospy.Publisher('/path_planner/group_target', State, queue_size=1)
 
-    # wait for accurate states
+    # wait for a good state estimate
+    if simulation is True:
+        rospy.sleep(1)
+    else:
+        rospy.sleep(5)
 
-    while not rospy.is_shutdown():
-        if STATE1 is not None:
-            break
-
-    # estimate body frame
-    #x = ((STATE1.x - robot1_config[0]) + (STATE2.x - robot2_config[0])) / 2
-    #y = ((STATE1.y - robot1_config[1]) + (STATE2.y - robot2_config[1])) / 2
-    #theta = (STATE1.theta + STATE2.theta) / 2
-    #body_state = State(x, y, theta)
+    while ROBOT1_STATE is None:
+        pass
 
     # generate paths to target
-    path = plan(STATE1, State(0, 0, 0))
+    path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
 
     # display planned paths
     draw(path, "waypoint")
 
-    # create a 10Hz timer
+    # create a 100Hz timer
     timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
         # check if robot is near current waypoint
-        if path:
-            distance, angle = polar(STATE1, path[0])
+        if path and ROBOT1_STATE is not None:
+            distance, angle = polar(ROBOT1_STATE, path[0])
 
             if distance < DELTA:
-                print("[path_planner]: reached waypoint " + str(11 - len(path)))
+                print("[path_planner]: reached waypoint " + str(POINTS + 1 - len(path)))
                 path.pop(0)
 
         # publish next waypoint
         if path:
-            publisher1.publish(path[0])
+            robot1_publisher.publish(path[0])
 
         # synchronize node 
         timer.sleep()

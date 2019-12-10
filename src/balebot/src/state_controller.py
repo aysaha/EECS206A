@@ -1,16 +1,26 @@
 #!/usr/bin/env python
 
+from enum import Enum
 import numpy as np
 import rospy
 from geometry_msgs.msg import Twist
 from balebot.msg import State
 
 
-TARGET1 = None
-TARGET2 = None
-STATE1 = None
-STATE2 = None
+ROBOT1_STATE = None
+ROBOT2_STATE = None
+GROUP_STATE = None
+GROUP_TARGET = None
 
+
+'''
+class ControlState(Enum):
+    Unknown = 0
+    Rotate = 1
+    Translate = 2
+    Adjust = 3
+    Follow = 4
+    Stop = 5
 
 def polar(source_state, target_state):
     # use the source state as the reference
@@ -22,57 +32,62 @@ def polar(source_state, target_state):
     angle = np.arctan2(y, x)
 
     return distance, angle
+'''
+
+def control(robot1_config, robot2_config, Kv=1, Kw=2):
+    global GROUP_STATE, GROUP_TARGET
+
+    robot1_command = Twist()
+    robot2_command = Twist()
+ 
+    '''
+    if GROUP_STATE is not None and GROUP_TARGET is not None:
+        error_theta = GROUP_TARGET.theta - GROUP_STATE.theta
+        W = Kw * error_theta
+        
+        robot1_command.angular.z = W
+        robot1_command.linear.x = 0.25 + W * abs(robot1_config)
+        
+        robot2_command.angular.z = W
+        robot2_command.linear.x = 0.25 + W * abs(robot2_config)
+    '''
+
+    return robot1_command, robot2_command
 
 
-def target1_callback(msg):
-    global TARGET1
 
-    TARGET1 = msg
+def robot1_state_callback(msg):
+    global ROBOT1_STATE
 
-
-def target2_callback(msg):
-    global TARGET2
-
-    TARGET2 = msg
+    ROBOT1_STATE = msg
 
 
-def state1_callback(msg):
-    global STATE1
+def robot2_state_callback(msg):
+    global ROBOT2_STATE
 
-    STATE1 = msg
-
-
-def state2_callback(msg):
-    global STATE2
-
-    STATE2 = msg
+    ROBOT2_STATE = msg
 
 
-def control(Kv=0.5, Kw=2):
-    global STATE1, TARGET1
+def group_state_callback(msg):
+    global GROUP_STATE
 
-    command = Twist()
+    GROUP_STATE = msg
 
-    distance, angle = polar(STATE1, TARGET1)
 
-    if TARGET1.x == 0 and TARGET1.y == 0 and TARGET1.theta == 0:
-        command.linear.x = Kv * distance
-        command.angular.z = Kw * (angle - STATE1.theta)
-    else:
-        command.linear.x = 0.5
-        command.angular.z = Kw * (angle - STATE1.theta)
+def group_target_callback(msg):
+    global GROUP_TARGET
 
-    return command
+    GROUP_TARGET = msg
 
 
 def main():
-    global TARGET1, TARGET2, STATE1, STATE2
-    
     # initialize ROS node
     rospy.init_node('state_controller')
-    
+
     # load data from parameter server
     try:
+        robot1_config = rospy.get_param('/path_planner/robot1_config')
+        robot2_config = rospy.get_param('/path_planner/robot2_config')
         robot1_control = rospy.get_param('/state_controller/robot1_control')
         robot2_control = rospy.get_param('/state_controller/robot2_control')
     except Exception as e:
@@ -80,30 +95,25 @@ def main():
         exit(1)
 
     # create ROS subscribers
-    rospy.Subscriber('/path_planner/target1', State, target1_callback)
-    rospy.Subscriber('/path_planner/target2', State, target2_callback)
-    rospy.Subscriber('/state_observer/state1', State, state1_callback)
-    rospy.Subscriber('/state_observer/state2', State, state2_callback)
+    rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
+    rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
+    rospy.Subscriber('/state_observer/group_state', State, group_state_callback)
+    rospy.Subscriber('/path_planner/group_target', State, group_target_callback)
     
     # create ROS publishers
-    publisher1 = rospy.Publisher(robot1_control, Twist, queue_size=1)
-    publisher2 = rospy.Publisher(robot2_control, Twist, queue_size=1)
+    robot1_publisher = rospy.Publisher(robot1_control, Twist, queue_size=1)
+    robot2_publisher = rospy.Publisher(robot2_control, Twist, queue_size=1)
 
     # create a 100Hz timer
     timer = rospy.Rate(100)
 
     while not rospy.is_shutdown():
         # generate control input
-        if STATE1 is not None and TARGET1 is not None:
-            command1 = control()
-        else:
-            command1 = Twist()
-        
-        command2 = Twist()
+        robot1_command, robot2_command = control(robot1_config, robot2_config)
 
         # publish command
-        publisher1.publish(command1)
-        publisher2.publish(command2)
+        robot1_publisher.publish(robot1_command)
+        robot2_publisher.publish(robot2_command)
 
         # synchronize node
         timer.sleep()

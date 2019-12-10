@@ -58,7 +58,7 @@ def publish_frame(frame):
 def main(args):
     # check for correct number of arguments
     if len(args) != 2:
-        print("Usage: motion_controller goal frame")
+        print("Usage: goal_frame")
         exit(1)
 
     # initialize ROS node
