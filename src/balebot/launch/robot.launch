@@ -12,13 +12,13 @@
     <!-- Robot 2 Configuration -->
     <arg name="robot2_frame" value="ar_marker_4"/>
     <arg name="robot2_static" value="robot2_static"/>
-    <arg name="robot2_config" value="-0.5"/>
+    <arg name="robot2_config" value="-0.45"/>
     <arg name="robot2_control" value="/green/cmd_vel_mux/input/teleop"/>
 
     <!-- Robot 3 Configuration -->
     <arg name="robot3_frame" value="ar_marker_1"/>
     <arg name="robot3_static" value="robot3_static"/>
-    <arg name="robot3_config" value="0.5"/>
+    <arg name="robot3_config" value="0.45"/>
     <arg name="robot3_control" value="/yellow/cmd_vel_mux/input/teleop"/>
 
     <!-- Sensing Nodes -->

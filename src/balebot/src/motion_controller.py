@@ -98,7 +98,7 @@ def controller(state, target, error, move=True):
     ############################ PARAMETERS ##################################
     
     #K1: Speed proportionnality constant
-    K1 = 0.6
+    K1 = 0.8
     Ky = -14
 
     #K2: Angular velocity proportionnality constant
