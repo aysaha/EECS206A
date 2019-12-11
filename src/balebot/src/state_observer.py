@@ -15,8 +15,10 @@ GOAL_STATE = None
 ROBOT1_STATES = []
 ROBOT2_STATES = []
 ROBOT3_STATES = []
+ROBOT1_ERRORS = []
 ROBOT2_ERRORS = []
 ROBOT3_ERRORS = []
+ROBOT1_TARGET = None
 
 
 def average(states):
@@ -67,12 +69,17 @@ def transform(robot_frame, fixed_frame, tf_buffer=None, tf_attempts=10):
 
 
 def robot1_frame_callback(msg):
-    global GOAL_STATE, ROBOT1_STATES
+    global GOAL_STATE, ROBOT1_STATES, ROBOT1_ERRORS
 
     ROBOT1_STATES.append(transform(msg, GOAL_STATE))
 
     while len(ROBOT1_STATES) > N:
         ROBOT1_STATES.pop(0)
+
+    ROBOT1_ERRORS.append(State(0, 0, 0))
+
+    while len(ROBOT1_ERRORS) > N:
+        ROBOT1_ERRORS.pop(0)
 
 
 def robot2_frame_callback(msg):
@@ -103,8 +110,14 @@ def robot3_frame_callback(msg):
         ROBOT3_ERRORS.pop(0)
 
 
+def robot1_target_callback(msg):
+    global ROBOT1_TARGET
+
+    ROBOT1_TARGET = msg
+
+
 def main():
-    global N, GOAL_STATE, ROBOT1_STATES, ROBOT2_STATES, ROBOT3_STATES, ROBOT2_ERRORS, ROBOT3_ERRORS
+    global N, GOAL_STATE, ROBOT1_STATES, ROBOT2_STATES, ROBOT3_STATES, ROBOT1_ERRORS, ROBOT2_ERRORS, ROBOT3_ERRORS
 
     # initialize ROS node
     rospy.init_node('state_observer')
@@ -124,10 +137,14 @@ def main():
         print("[state_observer]: could not find " + str(e) + " in parameter server")
         exit(1)
 
+    # create ROS subscribers
+    rospy.Subscriber('/path_planner/robot1_target', State, robot1_target_callback)
+
     # create ROS publishers
     robot1_publisher = rospy.Publisher('/state_observer/robot1_state', State, queue_size=1)
     robot2_publisher = rospy.Publisher('/state_observer/robot2_state', State, queue_size=1)
     robot3_publisher = rospy.Publisher('/state_observer/robot3_state', State, queue_size=1)
+    static1_publisher = rospy.Publisher('/state_observer/robot1_error', State, queue_size=1)
     static2_publisher = rospy.Publisher('/state_observer/robot2_error', State, queue_size=1)
     static3_publisher = rospy.Publisher('/state_observer/robot3_error', State, queue_size=1)
 
@@ -167,11 +184,17 @@ def main():
     # create a 100Hz timer
     timer = rospy.Rate(100)
 
+    robot1_state = None
+
     while not rospy.is_shutdown():
         if simulation is False:
             ROBOT1_STATES.append(transform(robot1_frame, goal_frame, tf_buffer=tf_buffer))
             ROBOT2_STATES.append(transform(robot2_frame, goal_frame, tf_buffer=tf_buffer))
             ROBOT3_STATES.append(transform(robot3_frame, goal_frame, tf_buffer=tf_buffer))
+            
+            if robot1_state is not None and ROBOT1_TARGET is not None:
+                ROBOT1_ERRORS.append(transform(robot1_state, ROBOT1_TARGET))
+            
             ROBOT2_ERRORS.append(transform(robot2_frame, robot2_static, tf_buffer=tf_buffer))
             ROBOT3_ERRORS.append(transform(robot3_frame, robot3_static, tf_buffer=tf_buffer))
 
@@ -193,6 +216,12 @@ def main():
 
         robot3_state = average(ROBOT3_STATES)
 
+        # determine robot 1 error
+        while len(ROBOT1_ERRORS) > N:
+            ROBOT1_ERRORS.pop(0)
+        
+        robot1_error = average(ROBOT1_ERRORS)
+
         # determine robot 2 error
         while len(ROBOT2_ERRORS) > N:
             ROBOT2_ERRORS.pop(0)
@@ -209,6 +238,7 @@ def main():
         robot1_publisher.publish(robot1_state)
         robot2_publisher.publish(robot2_state)
         robot3_publisher.publish(robot3_state)
+        static1_publisher.publish(robot1_error)
         static2_publisher.publish(robot2_error)
         static3_publisher.publish(robot3_error)
 

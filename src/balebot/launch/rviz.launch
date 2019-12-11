@@ -1,6 +1,6 @@
 <launch>
     <!-- Configuration Settings -->
-    <arg name="marker_size" value="12.0"/>
+    <arg name="marker_size" value="15.0"/>
     <arg name="max_new_marker_error" value="0.05"/>
     <arg name="max_track_error" value="0.05"/>
     <arg name="cam_image_topic" value="/usb_cam/image_raw"/>

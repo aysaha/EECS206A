@@ -12,6 +12,7 @@ TIMER_FREQ = 100
 ROBOT1_STATE = None
 ROBOT2_STATE = None
 ROBOT3_STATE = None
+ROBOT1_ERROR = None
 ROBOT2_ERROR = None
 ROBOT3_ERROR = None
 ROBOT1_TARGET = None
@@ -88,14 +89,17 @@ def setup_controller(error, state):
     return command, next_state, flag
 
 
-def controller(state, target, move=True):
+def controller(state, target, error, move=True):
     global last_target, integral, TIMER_FREQ, current_state
     
+    if error is None:
+    	return Twist()
 
     ############################ PARAMETERS ##################################
     
     #K1: Speed proportionnality constant
     K1 = 0.6
+    Ky = -14
 
     #K2: Angular velocity proportionnality constant
     Kp = -2
@@ -105,7 +109,7 @@ def controller(state, target, move=True):
     max_rot = 1.57
 
     #Tolerance values for distance and angle
-    eps_d = 0.15
+    eps_d = 0.07
     eps_theta = 0.1
 
     #Distance in meters before the turtlebot starts slowing down
@@ -127,9 +131,13 @@ def controller(state, target, move=True):
     x_w,y_w,theta_w = target.x, target.y, target.theta
     last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
 
-    x = x - x_w
-    y = y - y_w
-    theta = theta - theta_w
+    #x = x - x_w
+    #y = y - y_w
+    #theta = theta - theta_w
+    x = error.x
+    y = error.y
+    theta = error.theta
+
     d = np.sqrt(x*x + y*y)
 
     integral = integral + theta / TIMER_FREQ
@@ -153,12 +161,12 @@ def controller(state, target, move=True):
         #If you're farther than a certain threshhold value, go at max speed
         if d > slowdown_threshold or (not last_waypoint):
             command.linear.x = K1*d #max_speed
-            command.angular.z = Kp * theta + Ki * integral
+            command.angular.z = Kp * theta + Ki * integral + Ky * y
 
         #Then slow down as you get closer
         else:
             command.linear.x = K1 * x
-            command.angular.z = Kp * theta + Ki * integral
+            command.angular.z = Kp * theta + Ki * integral + Ky * y
 
         #Transition happens when closer to goal than tolerance
         if d < eps_d and last_waypoint:
@@ -210,6 +218,12 @@ def robot3_state_callback(msg):
     ROBOT3_STATE = msg
 
 
+def robot1_error_callback(msg):
+    global ROBOT1_ERROR
+
+    ROBOT1_ERROR = msg
+
+
 def robot2_error_callback(msg):
     global ROBOT2_ERROR
 
@@ -229,7 +243,7 @@ def robot1_target_callback(msg):
 
 
 def main():
-    global TIMER_FREQ, ROBOT1_STATE, ROBOT2_STATE, ROBOT3_STATE, ROBOT2_ERROR, ROBOT3_ERROR, ROBOT1_TARGET
+    global TIMER_FREQ, ROBOT1_STATE, ROBOT2_STATE, ROBOT3_STATE, ROBOT1_ERROR, ROBOT2_ERROR, ROBOT3_ERROR, ROBOT1_TARGET
 
     # initialize ROS node
     rospy.init_node('motion_controller')
@@ -249,6 +263,7 @@ def main():
     rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
     rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
     rospy.Subscriber('/state_observer/robot3_state', State, robot3_state_callback)
+    rospy.Subscriber('/state_observer/robot1_error', State, robot1_error_callback)
     rospy.Subscriber('/state_observer/robot2_error', State, robot2_error_callback)
     rospy.Subscriber('/state_observer/robot3_error', State, robot3_error_callback)
     rospy.Subscriber('/path_planner/robot1_target', State, robot1_target_callback)
@@ -280,7 +295,7 @@ def main():
     while not rospy.is_shutdown():
         # calculate control inputs
         if ROBOT1_STATE is not None and ROBOT1_TARGET is not None:
-            robot1_command = controller(ROBOT1_STATE, ROBOT1_TARGET)
+            robot1_command = controller(ROBOT1_STATE, ROBOT1_TARGET, ROBOT1_ERROR)
             robot2_command = translate(robot1_command, robot2_config, ROBOT2_ERROR)
             robot3_command = translate(robot1_command, robot3_config, ROBOT3_ERROR)
         else:
