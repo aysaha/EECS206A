@@ -3,10 +3,9 @@
 import numpy as np
 import rospy
 import tf2_ros
-import tf.transformations as tft
 from geometry_msgs.msg import Twist
-import matplotlib.pyplot as plt
-from planning.msg import State
+from balebot.msg import State
+from path_planner import polar
 
 
 TIMER_FREQ = 100
@@ -16,7 +15,7 @@ ROBOT3_STATE = None
 ROBOT2_ERROR = None
 ROBOT3_ERROR = None
 ROBOT1_TARGET = None
-last_target = State(0, 0, 0)
+last_target = State()
 integral = 0
 current_state = "MOVE"
 
@@ -37,6 +36,58 @@ def translate(command, config, error, Kx=2, Kz=1):
     return local_command
 
 
+def setup_controller(error, state):
+    if error is None:
+        return Twist(), state, False
+
+    #K1: Speed proportionnality constant
+    K1 = 0.6
+
+    #K2: Angular velocity proportionnality constant
+    Kp = -2
+    Ki = -1
+
+    #Tolerance values for distance and angle
+    eps_d = 0.15
+    eps_theta = 0.1
+
+    #Distance in meters before the turtlebot starts slowing down
+    slowdown_threshold = 0.15
+
+    #Turtlebot max speed in meters per sec
+    max_speed = K1 * slowdown_threshold
+
+    next_state = state
+    flag = False
+    d, angle = polar(error, State(0, 0, 0))
+    theta_r = np.arctan2(-error.y, -error.x)
+    command = Twist()
+
+    if state == "MOVE":
+        if d > slowdown_threshold:
+            command.linear.x = max_speed
+            command.angular.z = Kp * (error.theta - theta_r)
+        else:
+            command.linear.x = K1 * d
+            command.angular.z = Kp * (error.theta - theta_r)
+
+        if d < eps_d:
+            next_state = "ADJUST"
+    elif state == "ADJUST":
+        command.linear.x = 0
+        command.angular.z = Kp * error.theta
+
+        if abs(error.theta) < eps_theta:
+            next_state = "DONE"
+    elif state == "DONE":
+        flag = True
+    else:
+        print("[motion_controller] unknown state: " + state)
+        exit(1)
+
+    return command, next_state, flag
+
+
 def controller(state, target, move=True):
     global last_target, integral, TIMER_FREQ, current_state
     
@@ -50,9 +101,7 @@ def controller(state, target, move=True):
     Kp = -2
     Ki = -1
 
-    Kd = 0
     cap = .2
-
     max_rot = 1.57
 
     #Tolerance values for distance and angle
@@ -70,25 +119,18 @@ def controller(state, target, move=True):
     y = state.y
     theta = state.theta
 
-    #Integral reset if tqrget has changed
+    #Integral reset if target has changed
     if target.x != last_target.x:
         integral = 0
         last_target = target
     
-
     x_w,y_w,theta_w = target.x, target.y, target.theta
     last_waypoint = abs(x_w) < 0.01 and abs(y_w) < 0.01
-    #print("Last wp " + str(last_waypoint))
 
     x = x - x_w
     y = y - y_w
     theta = theta - theta_w
-    
-
     d = np.sqrt(x*x + y*y)
-    #theta_r = np.arctan2(-y, -x)
-    
-    #delta_theta = theta - theta_w
 
     integral = integral + theta / TIMER_FREQ
     if integral > cap:
@@ -96,43 +138,13 @@ def controller(state, target, move=True):
     if integral < -cap:
         integral = - cap
 
-
-    #Correct the angle singularity
-    '''
-    if delta_theta > 3.14:
-        delta_theta -= 6.28
-        print("singularity detected")
-    if delta_theta < -3.14:
-        delta_theta += 6.28
-        print("singularity detected")
-	'''
-
-
     command = Twist()
     next_state = current_state
-    
-    #print(last_waypoint)
-    #print(current_state)
-    #print(target)
-    #print("theta: " + str(theta * 180 / np.pi))
-    #print("distance: " + str(d))
-    #print("integral: " + str(integral))
-    #print(target.x)
-    
-
-    ################# REVERSE STATE ##################
-    if current_state == "REVERSE":
-        command.linear.x = -0.1
-
-        if d > 0.2:
-            next_state = "MOVE"
-
 
     ################### STOP STATE ####################
-    elif current_state == "STOP":
-        #print("STOOOOOOOOOP")
-        pass
+    if current_state == "STOP":
         #Do nothing
+        pass
 
 
     ################# MOVE STATE #####################
@@ -149,7 +161,6 @@ def controller(state, target, move=True):
             command.angular.z = Kp * theta + Ki * integral
 
         #Transition happens when closer to goal than tolerance
-        #print(last_waypoint)
         if d < eps_d and last_waypoint:
             next_state = "ADJUST"
 
@@ -158,7 +169,6 @@ def controller(state, target, move=True):
     elif current_state == "ADJUST":
         command.linear.x = 0
         command.angular.z = Ki * theta
-        #print(theta * 180/3.14)
 
         if abs(theta) < eps_theta:
             next_state = "STOP"
@@ -166,9 +176,9 @@ def controller(state, target, move=True):
 
     ################# PROBLEM STATE ##################
     else:
-        print("WRONG STATE: " + current_state)
+        print("[motion_controller] unknown state: " + current_state)
         exit(1)
-    
+
 
     #State machine transition
     current_state = next_state
@@ -219,7 +229,7 @@ def robot1_target_callback(msg):
 
 
 def main():
-    global TIMER_FREQ, ROBOT1_STATE, ROBOT2_ERROR, ROBOT3_ERROR, ROBOT1_TARGET
+    global TIMER_FREQ, ROBOT1_STATE, ROBOT2_STATE, ROBOT3_STATE, ROBOT2_ERROR, ROBOT3_ERROR, ROBOT1_TARGET
 
     # initialize ROS node
     rospy.init_node('motion_controller')
@@ -247,6 +257,22 @@ def main():
     robot1_publisher = rospy.Publisher(robot1_control, Twist, queue_size=1)
     robot2_publisher = rospy.Publisher(robot2_control, Twist, queue_size=1)
     robot3_publisher = rospy.Publisher(robot3_control, Twist, queue_size=1)
+
+    '''
+    robot2_controller = "MOVE"
+    robot3_controller = "MOVE"
+    robot2_ready = False
+    robot3_ready = False
+    
+    if robot2_ready is True and robot3_ready is True:
+        .
+        .
+        .
+    else:
+        robot1_command = Twist()
+        robot2_command, robot2_controller, robot2_ready = setup_controller(ROBOT2_ERROR, robot2_controller)
+        robot3_command, robot3_controller, robot3_ready = setup_controller(ROBOT3_ERROR, robot3_controller)
+    '''
 
     # create a 100Hz timer
     timer = rospy.Rate(TIMER_FREQ)

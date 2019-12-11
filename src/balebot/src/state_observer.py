@@ -33,7 +33,7 @@ def average(states):
     return State(x, y, theta)
 
 
-def transform(robot_frame, fixed_frame, tf_buffer=None):
+def transform(robot_frame, fixed_frame, tf_buffer=None, tf_attempts=10):
     if tf_buffer is None:
         # transform robot frame to fixed frame via rigid body transform
         RT = np.array([[np.cos(fixed_frame.theta), np.sin(fixed_frame.theta)], [-np.sin(fixed_frame.theta), np.cos(fixed_frame.theta)]])
@@ -45,18 +45,23 @@ def transform(robot_frame, fixed_frame, tf_buffer=None):
         theta = robot_frame.theta - fixed_frame.theta
     else:
         # get transformation from robot frame to fixed frame
-        while not rospy.is_shutdown():
+        for attempt in range(tf_attempts):
             try:
                 tf_frame = tf_buffer.lookup_transform(fixed_frame, robot_frame, rospy.Time())
                 break
             except:
-                pass
+                tf_frame = None
 
         # convert transformation to state
-        y = tf_frame.transform.translation.y
-        x = tf_frame.transform.translation.x
-        q = [tf_frame.transform.rotation.x, tf_frame.transform.rotation.y, tf_frame.transform.rotation.z, tf_frame.transform.rotation.w]
-        theta = tf.transformations.euler_from_quaternion(q)[-1]
+        if tf_frame is not None:
+            x = tf_frame.transform.translation.x
+            y = tf_frame.transform.translation.y
+            q = [tf_frame.transform.rotation.x, tf_frame.transform.rotation.y, tf_frame.transform.rotation.z, tf_frame.transform.rotation.w]
+            theta = tf.transformations.euler_from_quaternion(q)[-1]
+        else:
+            x = 0
+            y = 0
+            theta = 0
 
     return State(x, y, theta)
 

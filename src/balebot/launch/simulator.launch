@@ -3,7 +3,7 @@
     <arg name="simulation" value="True"/>
 
     <!-- Trajectory Configuration -->
-    <arg name="goal_frame" value="6, 7, 90"/>
+    <arg name="goal_frame" value="6, 7, 0"/>
 
     <!-- Robot 1 Configuration -->
     <arg name="robot1_frame" value="/turtle1/pose"/>
