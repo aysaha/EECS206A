@@ -4,35 +4,34 @@ import numpy as np
 import rospy
 import tf
 import tf2_ros
+
 from turtlesim.msg import Pose
 from turtlesim.srv import Spawn, TeleportAbsolute
 from std_srvs.srv import Empty
-from balebot.msg import State
+from balebot.msg import State as _State
+from collections import deque
 
+class State(_State):
+    def __add__(self, other):
+        return State(self.x + other.x, self.y + other.y, self.theta + other.theta)
 
-N = 3
-GOAL_STATE = None
-ROBOT1_STATES = []
-ROBOT2_STATES = []
-ROBOT3_STATES = []
-ROBOT1_ERRORS = []
-ROBOT2_ERRORS = []
-ROBOT3_ERRORS = []
-ROBOT1_TARGET = None
+    def __radd__(self, other):  # sum() needs radd to add to 0
+        if other == 0:
+            return self
+        
+        return self + other
+        
+    def __div__(self, N):
+        return State(self.x/N, self.y/N, self.theta/N)
+
 
 
 def average(states):
-    n = len(states)
-    x = 0
-    y = 0
-    theta = 0
+    N = len(states)
+    if N == 0:
+        return State(0, 0, 0)
 
-    for state in states:
-        x += state.x / n
-        y += state.y / n
-        theta += state.theta / n
-
-    return State(x, y, theta)
+    return sum(states)/N
 
 
 def transform(robot_frame, fixed_frame, tf_buffer=None, tf_attempts=10):
@@ -68,183 +67,128 @@ def transform(robot_frame, fixed_frame, tf_buffer=None, tf_attempts=10):
     return State(x, y, theta)
 
 
-def robot1_frame_callback(msg):
-    global GOAL_STATE, ROBOT1_STATES, ROBOT1_ERRORS
+class StateObserver():
+    def __init__(self, robot_count=3):
+        self.N = robot_count
+        self.ROBOT_RANGE = list(range(1, self.N+1))
+        self.goal_state = None
+        self.robot_states = {i: deque() for i in self.ROBOT_RANGE}
+        self.robot_errors = {i: deque() for i in self.ROBOT_RANGE}
+        self.robot1_target = None
 
-    ROBOT1_STATES.append(transform(msg, GOAL_STATE))
+    def robot_frame_callback(self, robot_no):
+        def callback(self, msg):
+            self.robot_states[robot_no].append(transform(msg, self.goal_state))
 
-    while len(ROBOT1_STATES) > N:
-        ROBOT1_STATES.pop(0)
+            while len(self.robot_states[robot_no]) > self.N:
+                self.robot_states[robot_no].popleft()
+            
+            self.robot_errors[robot_no].append(State(0, 0, 0))
 
-    ROBOT1_ERRORS.append(State(0, 0, 0))
+            while len(self.robot_errors[2]) > N:
+                self.robot_errors[robot_no].popleft()
 
-    while len(ROBOT1_ERRORS) > N:
-        ROBOT1_ERRORS.pop(0)
+        return callback
 
+    def robot1_target_callback(self, msg):
+        self.robot1_target = msg
 
-def robot2_frame_callback(msg):
-    global GOAL_STATE, ROBOT2_STATES, ROBOT2_ERRORS
+    def init_rospy(self):
+        # initialize ROS node
+        rospy.init_node('state_observer')
 
-    ROBOT2_STATES.append(transform(msg, GOAL_STATE))
+        # load data from parameter server
+        try:
+            self.simulation = rospy.get_param('/state_observer/simulation')
+            self.goal_frame = rospy.get_param('/state_observer/goal_frame')
+            self.robot_frames = {idx: rospy.get_param('/state_observer/robot{}_frame'.format(idx)) for idx in self.ROBOT_RANGE}
+            self.robot_statics = {idx: rospy.get_param('/state_observer/robot{}_frame'.format(idx)) for idx in self.ROBOT_RANGE}
+            self.robot_configs = {idx: rospy.get_param('/motion_controller/robot{}_config'.format(idx)) for idx in self.ROBOT_RANGE if idx != 1}
+        except Exception as e:
+            print("[state_observer]: could not find " + str(e) + " in parameter server")
+            exit(1)
 
-    while len(ROBOT2_STATES) > N:
-        ROBOT2_STATES.pop(0)
-    
-    ROBOT2_ERRORS.append(State(0, 0, 0))
-
-    while len(ROBOT2_ERRORS) > N:
-        ROBOT2_ERRORS.pop(0)
-
-
-def robot3_frame_callback(msg):
-    global GOAL_STATE, ROBOT3_STATES, ROBOT3_ERRORS
-
-    ROBOT3_STATES.append(transform(msg, GOAL_STATE))
-
-    while len(ROBOT3_STATES) > N:
-        ROBOT3_STATES.pop(0)
-
-    ROBOT3_ERRORS.append(State(0, 0, 0))
-
-    while len(ROBOT3_ERRORS) > N:
-        ROBOT3_ERRORS.pop(0)
-
-
-def robot1_target_callback(msg):
-    global ROBOT1_TARGET
-
-    ROBOT1_TARGET = msg
-
-
-def main():
-    global N, GOAL_STATE, ROBOT1_STATES, ROBOT2_STATES, ROBOT3_STATES, ROBOT1_ERRORS, ROBOT2_ERRORS, ROBOT3_ERRORS
-
-    # initialize ROS node
-    rospy.init_node('state_observer')
-
-    # load data from parameter server
-    try:
-        simulation = rospy.get_param('/state_observer/simulation')
-        goal_frame = rospy.get_param('/state_observer/goal_frame')
-        robot1_frame = rospy.get_param('/state_observer/robot1_frame')
-        robot2_frame = rospy.get_param('/state_observer/robot2_frame')
-        robot3_frame = rospy.get_param('/state_observer/robot3_frame')
-        robot2_static = rospy.get_param('/state_observer/robot2_static')
-        robot3_static = rospy.get_param('/state_observer/robot3_static')
-        robot2_config = rospy.get_param('/motion_controller/robot2_config')
-        robot3_config = rospy.get_param('/motion_controller/robot3_config')
-    except Exception as e:
-        print("[state_observer]: could not find " + str(e) + " in parameter server")
-        exit(1)
-
-    # create ROS subscribers
-    rospy.Subscriber('/path_planner/robot1_target', State, robot1_target_callback)
-
-    # create ROS publishers
-    robot1_publisher = rospy.Publisher('/state_observer/robot1_state', State, queue_size=1)
-    robot2_publisher = rospy.Publisher('/state_observer/robot2_state', State, queue_size=1)
-    robot3_publisher = rospy.Publisher('/state_observer/robot3_state', State, queue_size=1)
-    static1_publisher = rospy.Publisher('/state_observer/robot1_error', State, queue_size=1)
-    static2_publisher = rospy.Publisher('/state_observer/robot2_error', State, queue_size=1)
-    static3_publisher = rospy.Publisher('/state_observer/robot3_error', State, queue_size=1)
-
-    if simulation is True:
         # create ROS subscribers
-        rospy.Subscriber(robot1_frame, Pose, robot1_frame_callback)
-        rospy.Subscriber(robot2_frame, Pose, robot2_frame_callback)
-        rospy.Subscriber(robot3_frame, Pose, robot2_frame_callback)
+        rospy.Subscriber('/path_planner/robot1_target', State, self.robot1_target_callback)
 
-        # define origin
-        origin = State(5, 5, 0)
+        # create ROS publishers
+        self.robot_publishers = {idx: rospy.Publisher('/state_observer/robot{}_state'.format(idx), State, queue_size=1) for idx in self.ROBOT_RANGE}
+        self.static_publishers = {idx: rospy.Publisher('/state_observer/robot{}_error'.format(idx), State, queue_size=1) for idx in self.ROBOT_RANGE}
 
-        # define end goal
-        goal_frame = [float(val) for val in goal_frame.split(',')]
-        GOAL_STATE = State(goal_frame[0], goal_frame[1], goal_frame[2] * np.pi / 180)
+        if self.simulation is True:
+            # create ROS subscribers
+            for idx in self.ROBOT_RANGE:
+                rospy.Subscriber(self.robot_frames[idx], Pose, self.robot_frame_callback[idx])
 
-        # initialize simulator services
-        clear = rospy.ServiceProxy('clear', Empty)
-        spawn = rospy.ServiceProxy('spawn', Spawn)
-        teleport = rospy.ServiceProxy('turtle1/teleport_absolute', TeleportAbsolute)
+            # define origin
+            origin = State(5, 5, 0)
 
-        # wait for services
-        rospy.wait_for_service('clear')
-        rospy.wait_for_service('spawn')
-        rospy.wait_for_service('turtle1/teleport_absolute')
+            # define end goal
+            self.goal_frame = [float(val) for val in self.goal_frame.split(',')]
+            self.goal_state = State(goal_frame[0], goal_frame[1], goal_frame[2] * np.pi / 180)
 
-        # initialize robots
-        teleport(origin.x, origin.y, origin.theta)
-        spawn(origin.x, origin.y + robot2_config, origin.theta, 'turtle2')
-        spawn(origin.x, origin.y + robot3_config, origin.theta, 'turtle3')
-        clear()
-    else:
-        # create tf buffer primed with a tf listener
-        tf_buffer = tf2_ros.Buffer()
-        tf_listener = tf2_ros.TransformListener(tf_buffer)
+            # initialize simulator services
+            clear = rospy.ServiceProxy('clear', Empty)
+            spawn = rospy.ServiceProxy('spawn', Spawn)
+            teleport = rospy.ServiceProxy('turtle1/teleport_absolute', TeleportAbsolute)
 
-    # create a 100Hz timer
-    timer = rospy.Rate(100)
+            # wait for services
+            rospy.wait_for_service('clear')
+            rospy.wait_for_service('spawn')
+            rospy.wait_for_service('turtle1/teleport_absolute')
 
-    robot1_state = None
+            # initialize robots
+            teleport(origin.x, origin.y, origin.theta)
+            spawn(origin.x, origin.y + robot2_config, origin.theta, 'turtle2')
+            spawn(origin.x, origin.y + robot3_config, origin.theta, 'turtle3')
+            clear()
+        else:
+            # create tf buffer primed with a tf listener
+            self.tf_buffer = tf2_ros.Buffer()
+            self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
-    while not rospy.is_shutdown():
-        if simulation is False:
-            ROBOT1_STATES.append(transform(robot1_frame, goal_frame, tf_buffer=tf_buffer))
-            ROBOT2_STATES.append(transform(robot2_frame, goal_frame, tf_buffer=tf_buffer))
-            ROBOT3_STATES.append(transform(robot3_frame, goal_frame, tf_buffer=tf_buffer))
-            
-            if robot1_state is not None and ROBOT1_TARGET is not None:
-                ROBOT1_ERRORS.append(transform(robot1_state, ROBOT1_TARGET))
-            
-            ROBOT2_ERRORS.append(transform(robot2_frame, robot2_static, tf_buffer=tf_buffer))
-            ROBOT3_ERRORS.append(transform(robot3_frame, robot3_static, tf_buffer=tf_buffer))
 
-        # determine robot 1 state
-        while len(ROBOT1_STATES) > N:
-            ROBOT1_STATES.pop(0)
+    def run(self):
+        # create a 100Hz timer
+        timer = rospy.Rate(100)
 
-        robot1_state = average(ROBOT1_STATES)
+        current_robot_states = {idx: None for idx in self.ROBOT_RANGE}
+        current_robot_errors = {idx: None for idx in self.ROBOT_RANGE}
 
-        # determine robot 2 state
-        while len(ROBOT2_STATES) > N:
-            ROBOT2_STATES.pop(0)
-        
-        robot2_state = average(ROBOT2_STATES)
+        while not rospy.is_shutdown():
+            if self.simulation is False:
+                for idx in self.ROBOT_RANGE:
+                    self.robot_states[idx].append(transform(self.robot_frames[idx], self.goal_frame, tf_buffer=self.tf_buffer))
+                
+                if current_robot_states[1] is not None and self.robot1_target is not None:
+                    self.robot_errors[1].append(transform(current_robot_states[1], self.robot1_target))
+                
+                for idx in self.ROBOT_RANGE:
+                    if idx !=1:
+                        self.robot_errors[idx].append(transform(self.robot_frames[idx], self.robot_statics[idx], tf_buffer=self.tf_buffer))
 
-        # determine robot 3 state
-        while len(ROBOT3_STATES) > N:
-            ROBOT3_STATES.pop(0)
+            for idx in self.ROBOT_RANGE:
+                # determine robot idx state
+                while len(self.robot_states[idx]) > self.N:
+                    self.robot_states[idx].popleft()
 
-        robot3_state = average(ROBOT3_STATES)
+                current_robot_states[idx] = average(self.robot_states[idx])
 
-        # determine robot 1 error
-        while len(ROBOT1_ERRORS) > N:
-            ROBOT1_ERRORS.pop(0)
-        
-        robot1_error = average(ROBOT1_ERRORS)
+                # determine robot idx error
+                while len(self.robot_errors[1]) > self.N:
+                    self.robot_errors[idx].popleft()
+                
+                current_robot_errors[idx] = average(self.robot_errors[idx])
 
-        # determine robot 2 error
-        while len(ROBOT2_ERRORS) > N:
-            ROBOT2_ERRORS.pop(0)
-        
-        robot2_error = average(ROBOT2_ERRORS)
+                # publish states
+                self.robot_publishers[idx].publish(current_robot_states[idx])
+                self.static_publishers[idx].publish(current_robot_errors[idx])
 
-        # determine robot 3 error
-        while len(ROBOT3_ERRORS) > N:
-            ROBOT3_ERRORS.pop(0)
-
-        robot3_error = average(ROBOT3_ERRORS)
-
-        # publish states
-        robot1_publisher.publish(robot1_state)
-        robot2_publisher.publish(robot2_state)
-        robot3_publisher.publish(robot3_state)
-        static1_publisher.publish(robot1_error)
-        static2_publisher.publish(robot2_error)
-        static3_publisher.publish(robot3_error)
-
-        # synchronize node
-        timer.sleep()
+            # synchronize node
+            timer.sleep()
 
 
 if __name__ == '__main__':
-    main()
+    state_observer = StateObserver()
+    state_observer.init_rospy()
+    state_observer.run()
