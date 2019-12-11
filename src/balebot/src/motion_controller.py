@@ -9,29 +9,37 @@ import matplotlib.pyplot as plt
 from planning.msg import State
 
 
-STATES = ["MOVE", "ADJUST", "STOP", "REVERSE"]
 TIMER_FREQ = 100
 ROBOT1_STATE = None
+ROBOT2_STATE = None
+ROBOT3_STATE = None
+ROBOT2_ERROR = None
+ROBOT3_ERROR = None
 ROBOT1_TARGET = None
-last_target = State()
+last_target = State(0, 0, 0)
 integral = 0
+current_state = "MOVE"
 
 
-def robot1_state_callback(msg):
-    global ROBOT1_STATE
+def translate(command, config, error, Kx=2, Kz=1):
+    local_command = Twist()
 
-    ROBOT1_STATE = msg
+    if command is not None:
+        # determine theoretical command input
+        local_command.linear.x = command.linear.x - config * command.angular.z
+        local_command.angular.z = command.angular.z
 
+        # adjust for errors
+        if error is not None:
+            local_command.linear.x -= Kx * error.x
+            local_command.angular.z -= Kz * error.theta
 
-def robot1_target_callback(msg):
-    global ROBOT1_TARGET
-
-    ROBOT1_TARGET = msg
+    return local_command
 
 
 def controller(state, target, move=True):
-    global STATES, last_target, integral, TIMER_FREQ
-    current_state = "MOVE"
+    global last_target, integral, TIMER_FREQ, current_state
+    
 
     ############################ PARAMETERS ##################################
     
@@ -48,8 +56,8 @@ def controller(state, target, move=True):
     max_rot = 1.57
 
     #Tolerance values for distance and angle
-    eps_d = 0.05
-    eps_theta = 0.03
+    eps_d = 0.15
+    eps_theta = 0.1
 
     #Distance in meters before the turtlebot starts slowing down
     slowdown_threshold = 0.15
@@ -88,6 +96,7 @@ def controller(state, target, move=True):
     if integral < -cap:
         integral = - cap
 
+
     #Correct the angle singularity
     '''
     if delta_theta > 3.14:
@@ -121,13 +130,14 @@ def controller(state, target, move=True):
 
     ################### STOP STATE ####################
     elif current_state == "STOP":
+        #print("STOOOOOOOOOP")
         pass
         #Do nothing
 
 
     ################# MOVE STATE #####################
     elif current_state == "MOVE":
-
+        #print("distance : " + str(d))
         #If you're farther than a certain threshhold value, go at max speed
         if d > slowdown_threshold or (not last_waypoint):
             command.linear.x = K1*d #max_speed
@@ -139,6 +149,7 @@ def controller(state, target, move=True):
             command.angular.z = Kp * theta + Ki * integral
 
         #Transition happens when closer to goal than tolerance
+        #print(last_waypoint)
         if d < eps_d and last_waypoint:
             next_state = "ADJUST"
 
@@ -147,6 +158,7 @@ def controller(state, target, move=True):
     elif current_state == "ADJUST":
         command.linear.x = 0
         command.angular.z = Ki * theta
+        #print(theta * 180/3.14)
 
         if abs(theta) < eps_theta:
             next_state = "STOP"
@@ -164,38 +176,77 @@ def controller(state, target, move=True):
     command.linear.x = np.clip(command.linear.x, 0, max_speed)
     command.angular.z = np.clip(command.angular.z, -max_rot, max_rot)
 
-    if move is True:
-        robot1_command = command
-        robot2_command = Twist()
-    else:
-        print(command)
-        robot1_command = Twist()
-        robot2_command = Twist()
+    if move is False:
+        command = Twist()
 
-    return robot1_command, robot2_command
+    return command
+
+
+def robot1_state_callback(msg):
+    global ROBOT1_STATE
+
+    ROBOT1_STATE = msg
+
+
+def robot2_state_callback(msg):
+    global ROBOT2_STATE
+
+    ROBOT2_STATE = msg
+
+
+def robot3_state_callback(msg):
+    global ROBOT3_STATE
+
+    ROBOT3_STATE = msg
+
+
+def robot2_error_callback(msg):
+    global ROBOT2_ERROR
+
+    ROBOT2_ERROR = msg
+
+
+def robot3_error_callback(msg):
+    global ROBOT3_ERROR
+
+    ROBOT3_ERROR = msg
+
+
+def robot1_target_callback(msg):
+    global ROBOT1_TARGET
+
+    ROBOT1_TARGET = msg
 
 
 def main():
-    global ROBOT1_STATE, ROBOT1_TARGET, TIMER_FREQ
+    global TIMER_FREQ, ROBOT1_STATE, ROBOT2_ERROR, ROBOT3_ERROR, ROBOT1_TARGET
 
     # initialize ROS node
     rospy.init_node('motion_controller')
 
     # load data from parameter server
     try:
+        robot2_config = rospy.get_param('/motion_controller/robot2_config')
+        robot3_config = rospy.get_param('/motion_controller/robot3_config')
         robot1_control = rospy.get_param('/motion_controller/robot1_control')
         robot2_control = rospy.get_param('/motion_controller/robot2_control')
+        robot3_control = rospy.get_param('/motion_controller/robot3_control')
     except Exception as e:
         print("[motion_controller]: could not find " + str(e) + " in parameter server")
         exit(1)
 
     # create ROS subscribers
     rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
+    rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
+    rospy.Subscriber('/state_observer/robot3_state', State, robot3_state_callback)
+    rospy.Subscriber('/state_observer/robot2_error', State, robot2_error_callback)
+    rospy.Subscriber('/state_observer/robot3_error', State, robot3_error_callback)
     rospy.Subscriber('/path_planner/robot1_target', State, robot1_target_callback)
 
-    # create ROS publisher
+    # create ROS publishers
     robot1_publisher = rospy.Publisher(robot1_control, Twist, queue_size=1)
     robot2_publisher = rospy.Publisher(robot2_control, Twist, queue_size=1)
+    robot3_publisher = rospy.Publisher(robot3_control, Twist, queue_size=1)
 
     # create a 100Hz timer
     timer = rospy.Rate(TIMER_FREQ)
@@ -203,14 +254,18 @@ def main():
     while not rospy.is_shutdown():
         # calculate control inputs
         if ROBOT1_STATE is not None and ROBOT1_TARGET is not None:
-            robot1_command, robot2_command = controller(ROBOT1_STATE, ROBOT1_TARGET)
+            robot1_command = controller(ROBOT1_STATE, ROBOT1_TARGET)
+            robot2_command = translate(robot1_command, robot2_config, ROBOT2_ERROR)
+            robot3_command = translate(robot1_command, robot3_config, ROBOT3_ERROR)
         else:
             robot1_command = Twist()
             robot2_command = Twist()
+            robot3_command = Twist()
 
         # publish control inputs
         robot1_publisher.publish(robot1_command)
         robot2_publisher.publish(robot2_command)
+        robot3_publisher.publish(robot3_command)
 
         # synchronize node
         timer.sleep()

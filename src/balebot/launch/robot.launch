@@ -3,43 +3,47 @@
     <arg name="simulation" value="False"/>
 
     <!-- Trajectory Configuration -->
-    <arg name="start_frame" value="ar_marker_2"/>
-    <arg name="end_frame" value="ar_marker_14"/>
+    <arg name="goal_frame" value="ar_marker_0"/>
 
     <!-- Robot 1 Configuration -->
-    <arg name="robot1_frame" value="ar_marker_5"/>
-    <arg name="robot1_config" value="0"/>
-    <arg name="robot1_control" value="/pink/cmd_vel_mux/input/teleop"/>
+    <arg name="robot1_frame" value="ar_marker_1"/>
+    <arg name="robot1_control" value="/green/cmd_vel_mux/input/teleop"/>
 
     <!-- Robot 2 Configuration -->
-    <arg name="robot2_frame" value="ar_marker_4"/>
+    <arg name="robot2_frame" value="ar_marker_2"/>
+    <arg name="robot2_static" value="robot2_static"/>
     <arg name="robot2_config" value="0.5"/>
-    <arg name="robot2_control" value="/green/cmd_vel_mux/input/teleop"/>
+    <arg name="robot2_control" value="/pink/cmd_vel_mux/input/teleop"/>
 
-    <!-- Frame Publisher Node -->
+    <!-- Robot 3 Configuration -->
+    <arg name="robot3_frame" value="ar_marker_3"/>
+    <arg name="robot3_static" value="robot3_static"/>
+    <arg name="robot3_config" value="-0.5"/>
+    <arg name="robot3_control" value="/yellow/cmd_vel_mux/input/teleop"/>
+
+    <!-- Sensing Nodes -->
+    <node name="static2_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 $(arg robot2_config) 0 0 0 0 $(arg robot1_frame) $(arg robot2_static) 10" output="screen"/>
+    <node name="static3_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 $(arg robot3_config) 0 0 0 0 $(arg robot1_frame) $(arg robot3_static) 10" output="screen"/>
     <node name="frame_publisher" pkg="balebot" type="frame_publisher.py"  output="screen"/>
-
-    <!-- Static Transform Publisher -->
-    <node name="static_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 $(arg robot2_config) 0 0 0 0 $(arg robot1_frame) robot2_static 10" output="screen"/>
-
-    <!-- Sensing Node -->
     <node name="state_observer" pkg="balebot" type="state_observer.py" output="screen">
         <param name="simulation" value="$(arg simulation)" type="bool"/>
-        <param name="start_frame" value="$(arg start_frame)" type="string"/>
-        <param name="end_frame" value="$(arg end_frame)" type="string"/>
+        <param name="goal_frame" value="$(arg goal_frame)" type="string"/>
         <param name="robot1_frame" value="$(arg robot1_frame)" type="string"/>
         <param name="robot2_frame" value="$(arg robot2_frame)" type="string"/>
+        <param name="robot3_frame" value="$(arg robot3_frame)" type="string"/>
+        <param name="robot2_static" value="$(arg robot2_static)" type="string"/>
+        <param name="robot3_static" value="$(arg robot3_static)" type="string"/>
     </node>
 
-    <!-- Planning Node -->
-    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen">
-        <param name="robot1_config" value="$(arg robot1_config)" type="double"/>
+    <!-- Planning Nodes -->
+    <node name="path_planner" pkg="balebot" type="path_planner.py" output="screen"/>
+
+    <!-- Control Nodes -->
+    <node name="motion_controller" pkg="balebot" type="motion_controller.py" output="screen">
         <param name="robot2_config" value="$(arg robot2_config)" type="double"/>
-    </node>
-
-    <!-- Control Node -->
-    <node name="motion_controller" pkg="control" type="motion_controller.py" output="screen">
+        <param name="robot3_config" value="$(arg robot3_config)" type="double"/>
         <param name="robot1_control" value="$(arg robot1_control)" type="string"/>
         <param name="robot2_control" value="$(arg robot2_control)" type="string"/>
+        <param name="robot3_control" value="$(arg robot3_control)" type="string"/>
     </node>
 </launch>

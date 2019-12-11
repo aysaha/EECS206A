@@ -3,16 +3,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import rospy
+from std_msgs.msg import String
 from balebot.msg import State
-from state_observer import transform
 
+
+K = 2
+N = 12
 DELTA = 0.15
-CURVE = 2
-POINTS = 12
-START_STATE = None
 ROBOT1_STATE = None
-ROBOT2_STATE = None
-GROUP_STATE = None
 
 
 def draw(path, label, render=True):
@@ -42,7 +40,7 @@ def polar(source_state, target_state):
     return distance, angle
 
 
-def plan(initial_state, final_state, K=2, N=10):
+def plan(initial_state, final_state, K=2, N=12):
     path = []
     
     # unpack state vectors
@@ -73,62 +71,41 @@ def plan(initial_state, final_state, K=2, N=10):
     return path
 
 
-def start_state_callback(msg):
-    global START_STATE
-
-    START_STATE = msg
-
-
 def robot1_state_callback(msg):
     global ROBOT1_STATE
 
     ROBOT1_STATE = msg
 
 
-def robot2_state_callback(msg):
-    global ROBOT2_STATE
-
-    ROBOT2_STATE = msg
-
-
-def group_state_callback(msg):
-    global GROUP_STATE
-
-    GROUP_STATE = msg
-
-
 def main():
-    global DELTA, CURVE, POINTS, ROBOT1_STATE, ROBOT2_STATE
+    global K, N, DELTA, ROBOT1_STATE
 
     # initialize ROS node
     rospy.init_node('path_planner')
-    
+
     # load data from parameter server
     try:
-        start_frame = rospy.get_param('/state_observer/start_frame')
-        end_frame = rospy.get_param('/state_observer/end_frame')
-        robot1_config = rospy.get_param('/path_planner/robot1_config')
-        robot2_config = rospy.get_param('/path_planner/robot2_config')
+        goal_frame = rospy.get_param('/state_observer/goal_frame')
     except Exception as e:
         print("[path_planner]: could not find " + str(e) + " in parameter server")
         exit(1)
 
-    # create ROS subscribers
-    rospy.Subscriber('/state_observer/start_state', State, start_state_callback)
+    # create ROS subscriber
     rospy.Subscriber('/state_observer/robot1_state', State, robot1_state_callback)
-    rospy.Subscriber('/state_observer/robot2_state', State, robot2_state_callback)
-    rospy.Subscriber('/state_observer/group_state', State, group_state_callback)
 
-    # create ROS publisher
+    # create ROS publishers
     robot1_publisher = rospy.Publisher('/path_planner/robot1_target', State, queue_size=1)
-    robot2_publisher = rospy.Publisher('/path_planner/robot2_target', State, queue_size=1)
-    group_publisher = rospy.Publisher('/path_planner/group_target', State, queue_size=1)
+    info_publisher = rospy.Publisher('/path_planner/info', String, queue_size=1)
 
-    # wait for accurate state estimates
-    rospy.sleep(5)
+    # wait for valid state
+    while ROBOT1_STATE is None:
+        pass
 
-    # generate paths to target
-    robot1_path = plan(ROBOT1_STATE, State(0, 0, 0), K=CURVE, N=POINTS)
+    # wait for accurate state estimate
+    rospy.sleep(1)
+
+    # generate path to target
+    robot1_path = plan(ROBOT1_STATE, State(0, 0, 0), K=K, N=N)
 
     # display planned paths
     draw(robot1_path, "robot1")
@@ -141,7 +118,7 @@ def main():
             distance, angle = polar(ROBOT1_STATE, robot1_path[0])
 
             if distance < DELTA:
-                print("[path_planner]: robot1 reached waypoint " + str(POINTS + 1 - len(robot1_path)))
+                info_publisher.publish("robot1 reached waypoint " + str(N + 1 - len(robot1_path)))
                 robot1_path.pop(0)
 
         # publish next waypoint
