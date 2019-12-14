@@ -32,9 +32,6 @@ launches state_observer.py, path_planner.py, motion_controller.py in turtlesim
 `launch/rviz.launch`
 launches rviz, ar_track_alvar, and usb_cam
 
-`launch/teleop.launch`
-launches keyboard_teleop for a given turltebot
-
 ### Results
 ### Conclusion
 ### Team
