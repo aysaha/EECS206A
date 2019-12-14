@@ -1,31 +1,21 @@
 # EECS206A
 Introduction to Robotics Final Project
 
-### Getting started with path controller:
+### Introduction
+BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid body. It will plan and track a trajectory from an initial state to a final state while maintaining its rigid body structure. This is an interesting project because it deals with planning and control of a nonlinear, nonholonomic system. To make BaleBot work, it has to generate a path that takes into accounts system dynamics while synchrnoziing multiple control loops. This project would be useful for warehouse robotics. It can allow for transportation of large objects with multiple smaller robots instead of a single large robot.
 
-	*Clone repo/pull changes
-	*catkin_make in root directory
-	*source devel/setup.bash in setup directory
+### Design
+The primary design criteria for our project to meet is to maintain the rigid body structure. This is determined by the distance and orientation of each auxiliary robot with respect to a primary robot. We settled on a hierarchical control scheme where a global controller generates controller inputs for the group while a local control translates the global control inputs to each individual robot. Treating formation as a controls problem allowed us to design for robustness. However this limited our robot configuration to be along the horizontal axis of the primary robot. For path planning, we utilized an algorithm from the Sapienza University of Rome that was designed specifically for unicycle-model robots. This algorithm allowed us to generate smooth paths very efficiently. The generated trajectory was then sampled and sent to the controller node. Selecting too few waypoints would reduce the resolution of the path while sampling too many waypoints would result in missed waypoints due to the system not responding fast enough.
 
-	*add "export ROS_MASTER_URI=http://[TurtleID].local:11311" line to your .bashrc (and source .bashrc)
+### Implementation
+### Results
+### Conclusion
+### Team
+#### Ayusman Saha (EECS M.Eng.)
+Worked on simulation, state observer, path planner, and control
+#### Léo Toulet
+#### Philippe De Sousa
+#### Tarun Singh
+#### Joshua Lin
 
-	*ssh into the turtlebot: ssh turtlebot@[TurtleID].local (pwd : EE106A19)
-	*In the turtlebot, launch bringup sequence : roslaunch turtlebot_bringup minimal.launch --screen
-	*All following instructions are executed on the local machine
-
-	*Launch the realsense camera: roslaunch lab4_cam run_cam.launch
-	*Launch the ar_tags tracker: roslaunch lab4_cam ar_track.launch
-
-	*Launch rviz, add a camera->image_raw topic, and a TF object. Set the fixed marker as the fixed frame, disable all tf frames except for usb_cam and both ar markers
-
-### Running path controller
-
-	*Optionnaly, define a goal frame relative to the fixed ar_marker: rosrun tf static_transform_publisher x y z yaw pitch roll fixed_marker_id goal_frame 100
-
-	*Run the node to keep the goal frame active in case of loss of sight: rosrun control frame_publisher.py frame
-
-	*Run the controller: rosrun control motion_controller.py turtlebot_frame goal_frame
-
-### External resources
-
-* Kalman filter: http://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/
+### Additioanl Materials
