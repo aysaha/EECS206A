@@ -20,4 +20,4 @@ Worked on simulation, state observer, path planner, and control
 
 ### Additional Materials
 [Source Code](https://github.com/TheYoshiStory/EECS206A)
-Demo Video (Coming Soon)
+[Demo Video] (https://www.youtube.com/watch?v=_QTUjNOHIRY)
