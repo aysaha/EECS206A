@@ -18,5 +18,6 @@ Worked on simulation, state observer, path planner, and control
 #### Tarun Singh
 #### Joshua Lin
 
-### Additioanl Materials
+### Additional Materials
 [Source Code](https://github.com/TheYoshiStory/EECS206A)
+Demo Video (Coming Soon)
