@@ -4,12 +4,13 @@
 	html5up.net | @ajlkn
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 -->
-<html>
+<html lang="en">
 	<head>
 		<title>Robotics project</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="stylesheet" href="assets/css/custom.css" />
 		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 	</head>
 	<body class="is-preload">
@@ -28,10 +29,10 @@
 				<!-- Nav -->
 					<nav id="nav">
 						<ul>
-							<li><a href="#intro" class="active">Introduction</a></li>
-							<li><a href="#first">First Section</a></li>
-							<li><a href="#second">Second Section</a></li>
-							<li><a href="#cta">Get Started</a></li>
+							<li><a href="#introduction" class="active">Introduction</a></li>
+							<li><a href="#design">Design</a></li>
+							<li><a href="#implementation">Implementation</a></li>
+							<li><a href="#results">Results</a></li>
 						</ul>
 					</nav>
 
@@ -39,54 +40,88 @@
 					<div id="main">
 
 						<!-- Introduction -->
-							<section id="intro" class="main">
+							<section id="introduction" class="main">
 								<div class="spotlight">
 									<div class="content">
 										<header class="major">
-											<h2>Ipsum sed adipiscing</h2>
+											<h2>Introduction</h2>
 										</header>
-										<p>Sed lorem ipsum dolor sit amet nullam consequat feugiat consequat magna
-										adipiscing magna etiam amet veroeros. Lorem ipsum dolor tempus sit cursus.
-										Tempus nisl et nullam lorem ipsum dolor sit amet aliquam.</p>
-										<ul class="actions">
-											<li><a href="generic.html" class="button">Learn More</a></li>
-										</ul>
+										<p>BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid
+											body. It will plan and track a trajectory from an initial state to a final
+											state while maintaining its rigid body structure. This is an interesting
+											project because it deals with planning and control of a nonlinear,
+											nonholonomic system. To make BaleBot work, it has to generate a path that
+											takes into accounts system dynamics while synchrnoziing multiple control
+											loops. This project would be useful for warehouse robotics. It can allow for
+											transportation of large objects with multiple smaller robots instead of a
+											single large robot.</p>
 									</div>
 									<span class="image"><img src="images/pic01.jpg" alt="" /></span>
 								</div>
 							</section>
 
 						<!-- First Section -->
-							<section id="first" class="main special">
+							<section id="design" class="main special">
 								<header class="major">
-									<h2>Magna veroeros</h2>
+									<h2>Design</h2>
 								</header>
 								<ul class="features">
 									<li>
-										<span class="icon solid major style1 fa-code"></span>
-										<h3>Ipsum consequat</h3>
-										<p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
+										<span class="icon solid major style1 fa-shapes"></span>
+										<h3>Rigid body</h3>
+										<p>The primary design criteria for our project to meet is to maintain the rigid
+											body structure. This is determined by the distance and orientation of each
+											auxiliary robot with respect to a primary robot. We settled on a
+											hierarchical control scheme where a global controller generates controller
+											inputs for the group while a local control translates the global control
+											inputs to each individual robot. Treating formation as a controls problem
+											allowed us to design for robustness. However this limited our robot
+											configuration to be along the horizontal axis of the primary robot.
 									</li>
 									<li>
-										<span class="icon major style3 fa-copy"></span>
-										<h3>Amed sed feugiat</h3>
-										<p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
-									</li>
-									<li>
-										<span class="icon major style5 fa-gem"></span>
-										<h3>Dolor nullam</h3>
-										<p>Sed lorem amet ipsum dolor et amet nullam consequat a feugiat consequat tempus veroeros sed consequat.</p>
+										<span class="icon major style5 fa-arrow-alt-circle-left"></span>
+										<h3>Path planning</h3>
+										<p>We utilized an algorithm from the Sapienza University of Rome that
+											was designed specifically for unicycle-model robots. This algorithm allowed
+											us to generate smooth paths very efficiently. The generated trajectory was
+											then sampled and sent to the controller node. Selecting too few waypoints
+											would reduce the resolution of the path while sampling too many waypoints
+											would result in missed waypoints due to the system not responding fast
+											enough.</p>
 									</li>
 								</ul>
 								<footer class="major">
-									<ul class="actions special">
-										<li><a href="generic.html" class="button">Learn More</a></li>
-									</ul>
+									<iframe width="560"
+											height="315"
+											src="https://www.youtube.com/embed/kbM0s6gdCPo"
+											frameborder="0"
+											allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+											allowfullscreen>
+									</iframe>
 								</footer>
 							</section>
 
 						<!-- Second Section -->
-							<section id="second" class="main special">
+							<section id="implementation" class="main">
+								<div class="spotlight">
+									<div class="content">
+										<header class="major">
+											<h2>Implementation</h2>
+										</header>
+										<p><code>src/frame_publisher.py</code> refreshes key coordinate frames in case they get obstructed from view<br/>
+											<code>src/state_observer.py</code> provides state estimations of all coordinate frames<br/>
+											<code>src/path_planner.py</code> plans a smooth trajectory from an initial state to a final state<br/>
+											<code>src/motion_controller.py</code> determines control inputs to maintain rigid body and track trajectory<br/>
+											<code>msg/State.msg</code> fully describes the state-space with (x, y, θ)<br/>
+											<code>launch/robot.launch</code> launches frame_publisher.py, state_observer.py, path_planner.py, motion_controller.py
+											along with 2 static transform publisher nodes. Also contains parameters such as turtlebot color, AR tag numbers, and robot configuration<br/>
+											<code>launch/simulator.launch</code> launches state_observer.py, path_planner.py, motion_controller.py in turtlesim<br/>
+											<code>launch/rviz.launch</code> launches rviz, ar_track_alvar, and usb_cam</p>
+									</div>
+								</div>
+							</section>
+
+							<section id="results" class="main special">
 								<header class="major">
 									<h2>Ipsum consequat</h2>
 									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
@@ -123,7 +158,7 @@
 							</section>
 
 						<!-- Get Started -->
-							<section id="cta" class="main special">
+							<section id="results2" class="main special">
 								<header class="major">
 									<h2>Congue imperdiet</h2>
 									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
