@@ -8,6 +8,9 @@ BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid body
 The primary design criteria for our project to meet is to maintain the rigid body structure. This is determined by the distance and orientation of each auxiliary robot with respect to a primary robot. We settled on a hierarchical control scheme where a global controller generates controller inputs for the group while a local control translates the global control inputs to each individual robot. Treating formation as a controls problem allowed us to design for robustness. However this limited our robot configuration to be along the horizontal axis of the primary robot. For path planning, we utilized an algorithm from the Sapienza University of Rome that was designed specifically for unicycle-model robots. This algorithm allowed us to generate smooth paths very efficiently. The generated trajectory was then sampled and sent to the controller node. Selecting too few waypoints would reduce the resolution of the path while sampling too many waypoints would result in missed waypoints due to the system not responding fast enough.
 
 ### Implementation
+
+Talk about master/slave implementation --> Leo will work on that in the plane and upload the results after landing
+
 `src/frame_publisher.py`
 refreshes key coordinate frames in case they get obstructed from view
 
@@ -33,14 +36,30 @@ launches state_observer.py, path_planner.py, motion_controller.py in turtlesim
 launches rviz, ar_track_alvar, and usb_cam
 
 ### Results
+
+We obtained a robust, modular and versatile system that is capable of having an arbitrary number of robots follow almost any path while behaving as a rigid body.
+
+	* The slave controllers behaved incredibly well and were extremely robust to disturbances in both the initial conditions (i.e the turtlebots not being initially positionned in the required confirguration) and unforseen errors in the master's behavior. The slave robots would adhere to their theoretical coordinates within 5cm and 5 degrees of error, which is the best possible reacheable precision with the available hardware.
+
+	* The master controller will behave robustly on the majority of ordinary paths (for instance 0 to 180 curves, S-shaped paths). It will reach its goal with less than 10cm or error, and always positionned within 5 degrees from the desired orientation.
+
+### Possible improvements
+
+Concerning the slaves: we would like to make them more reactive to abrupt decisions of the master. For example, if the master suddently stops for a mechanical reason, the slaves will move another 5cm before stopping, an maintain that steady state error as long as the master has not restarted. To correct that, we would want to implement a PID controller instead of the current PD controller and tune the gains appropriatly.
+
+The master is in charge of following the path and making sure that the whole rigid body stays on course. This can be improved in a few ways. First, we would like to adapt the controller to make it more robust and be able to follow all paths, irrespective of shape. As of now, the controller takes the distance between the master and the next waypoint as input. This can introduce instability when the master narrowly passes and misses a waypoint. The controller will make it accelerate and miss its next waypoint. To solve that, we want to use the signed distance to the waypoint. This would require significanlty more calculation and tf transformation, which would make the system less responsive. It would greatly improve robustness for difficult paths, however.
+
 ### Conclusion
 ### Team
 #### Ayusman Saha (EECS M.Eng.)
 Worked on simulation, state observer, path planner, and control
 #### Léo Toulet
+Worked on frame publisher, path planning and control.
 #### Philippe De Sousa
 #### Tarun Singh
+Did not do work
 #### Joshua Lin
+Did not do work
 
 ### Additional Materials
 [Source Code](https://github.com/TheYoshiStory/EECS206A)
