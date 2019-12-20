@@ -9,7 +9,9 @@ The primary design criteria for our project to meet is to maintain the rigid bod
 
 ### Implementation
 
-Talk about master/slave implementation --> Leo will work on that in the plane and upload the results after landing
+In order to make the system as robust as possible, we defined on turtlebot as the "master" turtlebot, and used it as the center of our multirobot ridid body. This master turtlebot is in charge of following the path sent by the pathplanner function. 
+The slave robots do not "now" what the path is, their controller only tries to make them keep their position & orientation relative to the master.
+All bots use the state observer as feedback, constantly moniroting their positions relative to where they should be.
 
 `src/frame_publisher.py`
 refreshes key coordinate frames in case they get obstructed from view
