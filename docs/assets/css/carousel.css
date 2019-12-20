@@ -34,7 +34,7 @@ ul li {
     position: relative;
     top: 50%;
     left: 50%;
-    max-width: 750px;
+    max-width: 2000px;
     opacity: 0;
     -webkit-transform: translate(-50%, -50%);
     transform: translate(-50%, -50%);
@@ -83,11 +83,12 @@ ul li {
     border-radius: 5px;
     position: relative;
     margin: 2rem auto;
-    width: 120px;
-    height: 120px;
+    width: 170px;
+    height: 170px;
     overflow: hidden;
     -webkit-transform: rotate(45deg) translateZ(0px);
     transform: rotate(45deg) translateZ(0px);
+    border-radius: 50%;
 }
 #list li figure > div > div {
     background: url("images/teams.jpg") no-repeat;
@@ -110,6 +111,7 @@ ul li {
     color: #666;
     font-size: 0.9rem;
     font-weight: 400;
+    text-align: justify;
 }
 #list li:nth-child(1) figure > div > div {
     background-position: 0px 0px !important;

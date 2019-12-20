@@ -22,7 +22,7 @@ https://twitter.com/marco_bf
 			<ul id="list" class="cf">
 
 				<li>
-					<figure class="active">
+					<figure>
 						<div>
 							<div></div>
 						</div>
@@ -34,7 +34,7 @@ https://twitter.com/marco_bf
 				</li>
 
 				<li>
-					<figure>
+					<figure class="active">
 						<div>
 							<div></div>
 						</div>
@@ -97,13 +97,14 @@ https://twitter.com/marco_bf
 					$nItems = $listItems.length,
 					$nView = 3,
 					autoSlider,
-					$current = 0,
+					$current = 1,
 					$isAuto = true,
-					$acAuto = 2500,
+					$acAuto = 5000,
 
 					_init = function() {
 						_initWidth();
 						_eventInit();
+						_moveIt($listItems.eq(1), 1)
 					},
 
 					_initWidth = function() {
