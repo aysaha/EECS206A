@@ -34,6 +34,9 @@
 							<li><a href="#design">Design</a></li>
 							<li><a href="#implementation">Implementation</a></li>
 							<li><a href="#results">Results</a></li>
+							<li><a href="#conclusion">Conclusion</a></li>
+							<li><a href="#team">Team</a></li>
+							<li><a href="#materials">Additional materials</a></li>
 						</ul>
 					</nav>
 
@@ -47,7 +50,7 @@
 										<header class="major">
 											<h2>Introduction</h2>
 										</header>
-										<p>BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid
+										<p style="text-align: justify;">BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid
 											body. It will plan and track a trajectory from an initial state to a final
 											state while maintaining its rigid body structure. This is an interesting
 											project because it deals with planning and control of a nonlinear,
@@ -70,7 +73,7 @@
 									<li>
 										<img style="width:100%; height:300px;" src="images/RotatingBody_cropped.png"/>
 										<h3>Rigid body</h3>
-										<p>The primary design criteria for our project to meet is to maintain the rigid
+										<p style="text-align: justify;">The primary design criteria for our project to meet is to maintain the rigid
 											body structure. This is determined by the distance and orientation of each
 											auxiliary robot with respect to a primary robot. We settled on a
 											hierarchical control scheme where a global controller generates controller
@@ -82,7 +85,7 @@
 									<li>
 										<img style="width:100%; height:300px;" src="images/trajectory_croppped.png"/>
 										<h3>Path planning</h3>
-										<p>We utilized an algorithm from the Sapienza University of Rome that
+										<p style="text-align: justify;">We utilized an algorithm from the Sapienza University of Rome that
 											was designed specifically for unicycle-model robots. This algorithm allowed
 											us to generate smooth paths very efficiently. The generated trajectory was
 											then sampled and sent to the controller node. Selecting too few waypoints
@@ -91,15 +94,8 @@
 											enough.</p>
 									</li>
 								</ul>
-								<footer class="major">
-									<iframe width="560"
-											height="315"
-											src="https://www.youtube.com/embed/kbM0s6gdCPo"
-											frameborder="0"
-											allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-											allowfullscreen>
-									</iframe>
-								</footer>
+								<h2>Architecture</h2>
+                                <img src="images/PBDcode_cropped.png" style="width: 100%;"/>
 							</section>
 
 						<!-- Second Section -->
@@ -109,7 +105,8 @@
 										<header class="major">
 											<h2>Implementation</h2>
 										</header>
-										<p><code>src/frame_publisher.py</code> refreshes key coordinate frames in case they get obstructed from view<br/>
+										<p>Github: https://github.com/TheYoshiStory/EECS206A</p>
+										<!--<p><code>src/frame_publisher.py</code> refreshes key coordinate frames in case they get obstructed from view<br/>
 											<code>src/state_observer.py</code> provides state estimations of all coordinate frames<br/>
 											<code>src/path_planner.py</code> plans a smooth trajectory from an initial state to a final state<br/>
 											<code>src/motion_controller.py</code> determines control inputs to maintain rigid body and track trajectory<br/>
@@ -117,60 +114,58 @@
 											<code>launch/robot.launch</code> launches frame_publisher.py, state_observer.py, path_planner.py, motion_controller.py
 											along with 2 static transform publisher nodes. Also contains parameters such as turtlebot color, AR tag numbers, and robot configuration<br/>
 											<code>launch/simulator.launch</code> launches state_observer.py, path_planner.py, motion_controller.py in turtlesim<br/>
-											<code>launch/rviz.launch</code> launches rviz, ar_track_alvar, and usb_cam</p>
+											<code>launch/rviz.launch</code> launches rviz, ar_track_alvar, and usb_cam</p>-->
+                                        <img src="images/code.png" style="width: 100%;"/>
 									</div>
 								</div>
 							</section>
 
 							<section id="results" class="main special">
 								<header class="major">
-									<h2>Ipsum consequat</h2>
-									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
-									posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
+									<h2>Results</h2>
 								</header>
-								<ul class="statistics">
-									<li class="style1">
-										<span class="icon solid fa-code-branch"></span>
-										<strong>5,120</strong> Etiam
-									</li>
-									<li class="style2">
-										<span class="icon fa-folder-open"></span>
-										<strong>8,192</strong> Magna
-									</li>
-									<li class="style3">
-										<span class="icon solid fa-signal"></span>
-										<strong>2,048</strong> Tempus
-									</li>
-									<li class="style4">
-										<span class="icon solid fa-laptop"></span>
-										<strong>4,096</strong> Aliquam
-									</li>
-									<li class="style5">
-										<span class="icon fa-gem"></span>
-										<strong>1,024</strong> Nullam
-									</li>
-								</ul>
+								<iframe class="youtube"
+										width="850"
+										height="478"
+										src="https://www.youtube.com/embed/kbM0s6gdCPo"
+										frameborder="0"
+										allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+										allowfullscreen>
+								</iframe>
+								<div style="text-align: justify; margin-top: 30px;">
+									<p>Assuming that the trajectory stays in the field of view of the camera, the system reaches the target every time.
+										The major weakness is actually the connection to the robots. The pink Kobuki robot may lose connection for a second. That is why
+										it is chosen as the central robot that is the reference for the control of the lateral robots. If we put the pink one on the side,
+										the system will keep moving to the target without waiting for the pink unit. As a result, this issue explains why the system does not
+										move smoothly to the target but has some jerk caused by the central robot connection problems.</p>
+								</div>
 								<p class="content">Nam elementum nisl et mi a commodo porttitor. Morbi sit amet nisl eu arcu faucibus hendrerit vel a risus. Nam a orci mi, elementum ac arcu sit amet, fermentum pellentesque et purus. Integer maximus varius lorem, sed convallis diam accumsan sed. Etiam porttitor placerat sapien, sed eleifend a enim pulvinar faucibus semper quis ut arcu. Ut non nisl a mollis est efficitur vestibulum. Integer eget purus nec nulla mattis et accumsan ut magna libero. Morbi auctor iaculis porttitor. Sed ut magna ac risus et hendrerit scelerisque. Praesent eleifend lacus in lectus aliquam porta. Cras eu ornare dui curabitur lacinia.</p>
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="generic.html" class="button">Learn More</a></li>
-									</ul>
-								</footer>
 							</section>
 
-						<!-- Get Started -->
-							<section id="results2" class="main special">
+							<section id="conclusion" class="main special">
 								<header class="major">
-									<h2>Congue imperdiet</h2>
+									<h2>Conclusion</h2>
 									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
 									posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
 								</header>
-								<footer class="major">
-									<ul class="actions special">
-										<li><a href="generic.html" class="button primary">Get Started</a></li>
-										<li><a href="generic.html" class="button">Learn More</a></li>
-									</ul>
-								</footer>
+							</section>
+
+							<section id="team" class="main special">
+								<header class="major">
+									<h2>Team</h2>
+									<iframe width="100%"
+											height="450px"
+											frameborder="0"
+											src="./carousel.html"></iframe>
+								</header>
+							</section>
+
+							<section id="materials" class="main special">
+								<header class="major">
+									<h2>Additional materials</h2>
+									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
+										posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
+								</header>
 							</section>
 
 					</div>
