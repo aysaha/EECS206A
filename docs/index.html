@@ -16,23 +16,29 @@
     </head>
     <body class="is-preload">
 
-        <!-- <iframe class="youtube"
-                width="850"
-                height="478"
-                src="https://www.youtube.com/embed/kbM0s6gdCPo"
-                frameborder="0"
-                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen>
-        </iframe> -->
-
         <!-- Wrapper -->
         <div id="wrapper">
             <!-- Header -->
             <header id="header" class="alt">
-                <span class="logo"><img src="images/Seal_of_University_of_California,_Berkeley.png" alt="" /></span>
-                <h1>UC Berkeley graduate robotics project</h1>
-                <p>Path planning for an N-ary system behaving as a rigid body<br />
-                by Ayusman Saha, Léo Toulet, <a href="https://fdesousa.fr">Philippe Ferreira De Sousa</a>, Joshua Lin, Tarun Singh</p>
+                <iframe class="youtube"
+                         width="850"
+                         height="478"
+                         src="https://www.youtube.com/embed/kbM0s6gdCPo"
+                         frameborder="0"
+                         allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                         allowfullscreen>
+                </iframe>
+
+                <h2><a href="https://github.com/TheYoshiStory/EECS206A">Source</a></h2>
+
+                <!-- <span class="logo"><img src="images/Seal_of_University_of_California,_Berkeley.png" alt="" /></span> -->
+                <h1>BaleBot: Collaborative Trajectory Tracking and Multi-Robot Control</h1>
+                <p>
+                    <a href="https://www.linkedin.com/in/ayusmansaha">Ayusman Saha</a> |
+                    <a href="https://www.linkedin.com/in/leotoulet">Léo Toulet</a> |
+                    <a href="https://fdesousa.fr">Philippe Ferreira De Sousa</a> | 
+                    Tarun Singh | Joshua Lin
+                </p>
             </header>
 
             <!-- Nav -->
@@ -83,15 +89,13 @@
                                 robots with respect to the goal position, planning had to generate a
                                 valid trajectory from the starting point to the goal, and control had
                                 to track the trajectory point-by-point.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 To make state estimation as accurate as possible, we utilize an external
                                 camera with AR tags to determine position and orientation of each robot.
                                 Although this provides a direct measurement of the state, it limits the
                                 workspace of the system to the camera's field-of-view and is prone to
                                 high-frequency noise as the robots move further away from the camera.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 Planning had to take into consideration the system model when generating
                                 a path. The primary requirement was that the derivative of trajectory had
                                 to be continuous. This would enable nonholonomic systems to track the
@@ -102,6 +106,7 @@
                             </p>
                             <img style="width:100%;" src="images/trajectory_croppped.png"/>
                             <p style="text-align: justify;">
+                                <br/>
                                 Control had to drive the system to the next state while maintaining its
                                 rigid body structure. To achieve this, we designed a hierarchical structure
                                 that consists of a single global controller and multiple local controllers.
@@ -113,6 +118,7 @@
                             </p>
                             <img style="width:100%;" src="images/RotatingBody_cropped.png"/>
                             <p style="text-align: justify;">
+                                <br/>
                                 The major tradeoff in the design was maintaining the rigid body structure
                                 at the controls level rather than the planning level. Although this allows
                                 the system to maintain its structure very accurately, it limits the robot
@@ -139,10 +145,10 @@
                             </p>
                             <img style="width:100%;" src="images/PBDcode_cropped.png"/>
                             <p style="text-align: justify;">
+                                <br/>
                                 To make communication simple, we created a custom message type defined in <code>msg/State.msg</code>.
                                 It comprises of a float tuple (x, y, θ) that is used to fully describe the state-space.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 <code>src/frame_publisher.py</code> is a node that is used to update the goal frame in the case
                                 it is obstructed from view. <code>src/state_observer.py</code> determines the state estimate of
                                 all robots with respect the the goal frame. It utilizes TF transformations and performs a rolling
@@ -155,8 +161,7 @@
                                 state of the global robot. The local controller then interprets these commands as a feedforward term
                                 for a proportional controller that corrects for the state error between where the local robot
                                 currently is and where it should be with respect to the global robot.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 There are also several launch files to simplify execution. <code>launch/rviz.launch</code> starts
                                 RVIZ along with the AR tracker and camera driver. <code>launch/robot.launch</code> is used to run
                                 the system on hardware while <code>launch/simulator.launch</code> is used to run the system in
@@ -178,13 +183,12 @@
                                 Overall, the project met our most important design criteria of maintaining a rigid body
                                 structure while in motion. It was able to move between states in an obstacle-free
                                 environment provided all robots remained in the camera’s field-of-view.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 The global controller was relatively robust provided it did not miss a waypoint in
                                 the path. This was prevented by appropriately selecting the distance between
                                 waypoints and the curvature of the trajectory. The system was able to reach its
                                 targets within 10cm and 5°.
-                            <p style="text-align: justify;">
+                                <br/>
                                 The local controllers were robust to disturbances in initial conditions as well
                                 as deviations from the global robot. They maintained their states within 5cm of
                                 translational error and 5° of rotational error.
@@ -208,8 +212,7 @@
                                 accuracy using only the state estimations of the local frames. In order to
                                 place robots away from the horizontal axis, the controller has to be redesigned
                                 since the overall system changes from a unicycle-model robot to a bicycle model robot.
-                            </p>
-                            <p style="text-align: justify;">
+                                <br/>
                                 Another addition would be the use of onboard sensors to improve state estimation
                                 and enable obstacle avoidance. State estimation is done primarily through an
                                 external camera and AR tags in key locations. However, combining this with odometry
@@ -236,29 +239,9 @@
 
             <!-- Footer -->
             <footer id="footer">
-                <section>
-                    <h2>Header 1</h2>
-                    <p>Paragraph 1</p>
-                    <ul class="actions">
-                        <li><a href="generic.html" class="button">Learn More</a></li>
-                    </ul>
-                </section>
-                <section>
-                    <h2>Header 2</h2>
-                    <dl class="alt">
-                        <dt>Address</dt>
-                        <dd>1234 Somewhere Road &bull; Nashville, TN 00000 &bull; USA</dd>
-                        <dt>Phone</dt>
-                        <dd>(000) 000-0000 x 0000</dd>
-                        <dt>Email</dt>
-                        <dd><a href="#">information@untitled.tld</a></dd>
-                    </dl>
-                    <ul class="icons">
-                        <li><a href="https://github.com/TheYoshiStory/EECS206A" class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-                        <li><a href="https://ucb-ee106.github.io/ee106a-fa19/" class="icon brands fa-dribbble alt"><span class="label">Dribbble</span></a></li>
-                    </ul>
-                </section>
-                <p class="copyright">&copy; Untitled. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
+                <p>
+                    University of California, Berkeley
+                </p>
             </footer>
         </div>
 
