@@ -1,210 +1,284 @@
 <!DOCTYPE HTML>
 <!--
-	Stellar by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+    Stellar by HTML5 UP
+    html5up.net | @ajlkn
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 -->
 <html lang="en">
-	<head>
-		<title>Robotics project</title>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<link rel="stylesheet" href="assets/css/custom.css" />
-		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-		<link rel="shortcut icon" type="image/png" href="images/balebot.png"/>
-	</head>
-	<body class="is-preload">
+    <head>
+        <title>Robotics project</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <link rel="stylesheet" href="assets/css/main.css" />
+        <link rel="stylesheet" href="assets/css/custom.css" />
+        <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+        <link rel="shortcut icon" type="image/png" href="images/balebot.png"/>
+    </head>
+    <body class="is-preload">
 
-		<!-- Wrapper -->
-			<div id="wrapper">
+        <!-- <iframe class="youtube"
+                width="850"
+                height="478"
+                src="https://www.youtube.com/embed/kbM0s6gdCPo"
+                frameborder="0"
+                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+        </iframe> -->
 
-				<!-- Header -->
-					<header id="header" class="alt">
-						<span class="logo"><img src="images/Seal_of_University_of_California,_Berkeley.png" alt="" /></span>
-						<h1>UC Berkeley graduate robotics project</h1>
-						<p>Path planning for an N-ary system behaving as a rigid body<br />
-						by Ayusman Saha, Léo Toulet, <a href="https://fdesousa.fr">Philippe Ferreira De Sousa</a>, Joshua Lin, Tarun Singh</p>
-					</header>
+        <!-- Wrapper -->
+        <div id="wrapper">
+            <!-- Header -->
+                <header id="header" class="alt">
+                    <span class="logo"><img src="images/Seal_of_University_of_California,_Berkeley.png" alt="" /></span>
+                    <h1>UC Berkeley graduate robotics project</h1>
+                    <p>Path planning for an N-ary system behaving as a rigid body<br />
+                    by Ayusman Saha, Léo Toulet, <a href="https://fdesousa.fr">Philippe Ferreira De Sousa</a>, Joshua Lin, Tarun Singh</p>
+                </header>
 
-				<!-- Nav -->
-					<nav id="nav">
-						<ul>
-							<li><a href="#overview" class="active">Overview</a></li>
-							<li><a href="#design">Design</a></li>
-							<li><a href="#implementation">Implementation</a></li>
-							<li><a href="#improvements">Improvements</a></li>
-							<li><a href="#team">Team</a></li>
-						</ul>
-					</nav>
+            <!-- Nav -->
+                <nav id="nav">
+                    <ul>
+                        <li><a href="#overview" class="active">Overview</a></li>
+                        <li><a href="#design">Design</a></li>
+                        <li><a href="#implementation">Implementation</a></li>
+                        <li><a href="#improvements">Improvements</a></li>
+                        <li><a href="#team">Team</a></li>
+                    </ul>
+                </nav>
 
-				<!-- Main -->
-					<div id="main">
+            <!-- Main -->
+                <div id="main">
+                    <!-- Overview -->
+                    <section id="overview" class="main">
+                        <div class="spotlight">
+                            <div class="content">
+                                <header class="major">
+                                    <h2>Introduction</h2>
+                                </header>
+                                <p style="text-align: justify;">
+                                    BaleBot coordinates multiple TurtleBot2 robots to function as a single
+                                    entity. It achieves this by maintaining a rigid body structure as it
+                                    tracks a trajectory from an initial state to a final state.This is an
+                                    interesting problem because the system is nonlinear and nonholonomic.
+                                    Dynamics need to be taken into account when planning and control loops
+                                    need to be synchronized between all agents. The main application for
+                                    this project would be in warehouse robotics. It can enable several
+                                    smaller robots to move large objects by working collaboratively.
+                                </p>
+                            </div>
+                            <span class="image"><img src="images/system.jpg" alt=""/></span>
+                        </div>
+                    </section>
 
-						<!-- Introduction -->
-							<section id="overview" class="main">
-								<div class="spotlight">
-									<div class="content">
-										<header class="major">
-											<h2>Introduction</h2>
-										</header>
-										<p style="text-align: justify;">
-                                            BaleBot coordinates multiple TurtleBot2 robots to function as a single
-                                            entity. It achieves this by maintaining a rigid body structure as it
-                                            tracks a trajectory from an initial state to a final state.This is an
-                                            interesting problem because the system is nonlinear and nonholonomic.
-                                            Dynamics need to be taken into account when planning and control loops
-                                            need to be synchronized between all agents. The main application for
-                                            this project would be in warehouse robotics. It can enable several
-                                            smaller robots to move large objects by working collaboratively.</p>
-									</div>
-									<span class="image"><img src="images/system.jpg" alt="" /></span>
-								</div>
-							</section>
+                    <!-- Design -->
+                    <section id="design" class="main">
+                        <div class="spotlight">
+                            <div class="content">
+                                <header class="major">
+                                    <h2>Design</h2>
+                                </header>
+                                <p style="text-align: justify;">
+                                    The project was broken into 3 distinct subproblems: sensing, planning,
+                                    and control. Sensing had to create reasonable state estimates of all
+                                    robots with respect to the goal position, planning had to generate a
+                                    valid trajectory from the starting point to the goal, and control had
+                                    to track the trajectory point-by-point.
+                                </p>
+                                <p style="text-align: justify;">
+                                    To make state estimation as accurate as possible, we utilize an external
+                                    camera with AR tags to determine position and orientation of each robot.
+                                    Although this provides a direct measurement of the state, it limits the
+                                    workspace of the system to the camera's field-of-view and is prone to
+                                    high-frequency noise as the robots move further away from the camera.
+                                </p>
+                                <p style="text-align: justify;">
+                                    Planning had to take into consideration the system model when generating
+                                    a path. The primary requirement was that the derivative of trajectory had
+                                    to be continuous. This would enable nonholonomic systems to track the
+                                    trajectory without instantaneous rotational or horizontal motion. An
+                                    <a href="https://www.yumpu.com/en/document/view/8662921/robotics-1-wheeled-mobile-robots-analysis-planning-and-control">algorithm</a>
+                                    presented by Professor Alessandro De Luca from the Sapienza University
+                                    of Rome was utilized for its simplicity and flexibility.
+                                </p>
+                                <img style="width:100%; height:300px;" src="images/trajectory_croppped.png"/>
+                                <p style="text-align: justify;">
+                                    Control had to drive the system to the next state while maintaining its
+                                    rigid body structure. To achieve this, we designed a hierarchical structure
+                                    that consists of a single global controller and multiple local controllers.
+                                    The global controller would generate control signals for the global robot
+                                    which would then be fed as an input to the local controllers. The local
+                                    controllers utilize this to determine a feedforward signal that is used
+                                    in conjunction with a proportional controller to derive the control signals
+                                    for each robot.
+                                </p>
+                                <img style="width:100%; height:300px;" src="images/RotatingBody_cropped.png"/>
+                                <p style="text-align: justify;">
+                                    The major tradeoff in the design was maintaining the rigid body structure
+                                    at the controls level rather than the planning level. Although this allows
+                                    the system to maintain its structure very accurately, it limits the robot
+                                    configurations such that the global robot can still be described by a
+                                    unicycle-model. The alternative would be to generate a path for the global
+                                    robot and then translate it for each local robot. This would permit arbitrary
+                                    robot configurations at the cost of a less reliable rigid body structure.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
-						<!-- First Section -->
-							<section id="design" class="main special">
-								<header class="major">
-									<h2>Design</h2>
-								</header>
-								<ul class="features">
-									<li>
-										<img style="width:100%; height:300px;" src="images/RotatingBody_cropped.png"/>
-										<h3>Rigid body</h3>
-										<p style="text-align: justify;">The primary design criteria for our project to meet is to maintain the rigid
-											body structure. This is determined by the distance and orientation of each
-											auxiliary robot with respect to a primary robot. We settled on a
-											hierarchical control scheme where a global controller generates controller
-											inputs for the group while a local control translates the global control
-											inputs to each individual robot. Treating formation as a controls problem
-											allowed us to design for robustness. However this limited our robot
-											configuration to be along the horizontal axis of the primary robot.
-									</li>
-									<li>
-										<img style="width:100%; height:300px;" src="images/trajectory_croppped.png"/>
-										<h3>Path planning</h3>
-										<p style="text-align: justify;">We utilized an algorithm from the Sapienza University of Rome that
-											was designed specifically for unicycle-model robots. This algorithm allowed
-											us to generate smooth paths very efficiently. The generated trajectory was
-											then sampled and sent to the controller node. Selecting too few waypoints
-											would reduce the resolution of the path while sampling too many waypoints
-											would result in missed waypoints due to the system not responding fast
-											enough.</p>
-									</li>
-								</ul>
-								<h2>Architecture</h2>
-                                <img src="images/PBDcode_cropped.png" style="width: 100%;"/>
-							</section>
+                    <!-- Implementation -->
+                    <section id="implementation" class="main">
+                        <div class="spotlight">
+                            <div class="content">
+                                <header class="major">
+                                    <h2>Implementation</h2>
+                                </header>
+                                <p style="text-align: justify;">
+                                    The project was implemented in ROS Kinetic and tested with three TurtleBot2 robots.
+                                    The only external packages used were <code>ar_track_alvar`</code> for AR tracking and
+                                    <code>usb_cam</code> as a driver for the Logitech C922x camera.
+                                </p>
+                                <img style="width:100%; height:300px;" src="images/PBDcode_cropped.png"/>
+                                <p style="text-align: justify;">
+                                    To make communication simple, we created a custom message type defined in <code>msg/State.msg</code>.
+                                    It comprises of a float tuple (x, y, θ) that is used to fully describe the state-space.
+                                </p>
+                                <p style="text-align: justify;">
+                                    <code>src/frame_publisher.py</code> is a node that is used to update the goal frame in the case
+                                    it is obstructed from view. <code>src/state_observer.py</code> determines the state estimate of
+                                    all robots with respect the the goal frame. It utilizes TF transformations and performs a rolling
+                                    average before converting to a State message. <code>src/path_planner.py</code> gets the initial
+                                    state of the global robot and calculates a trajectory with respect to the goal frame. It then
+                                    samples this path to create State waypoints for the control node to follow. It continuously monitors
+                                    the state of the global robot to determine when to publish the next waypoint. <code>src/motion_controller.py</code>
+                                    runs the global and local controllers. The global controller uses a proportional-integral controller
+                                    to derive control signals based on the next waypoint published by the planner along with the current
+                                    state of the global robot. The local controller then interprets these commands as a feedforward term
+                                    for a proportional controller that corrects for the state error between where the local robot
+                                    currently is and where it should be with respect to the global robot.
+                                </p>
+                                <p style="text-align: justify;">
+                                    There are also several launch files to simplify execution. <code>launch/rviz.launch</code> starts
+                                    RVIZ along with the AR tracker and camera driver. <code>launch/robot.launch</code> is used to run
+                                    the system on hardware while <code>launch/simulator.launch</code> is used to run the system in
+                                    simulation. These files also contain settings such as global robot configuration, AR marker
+                                    numbers and command topics.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
-						<!-- Second Section -->
-							<section id="implementation" class="main">
-								<div class="spotlight">
-									<div class="content">
-										<header class="major">
-											<h2>Implementation</h2>
-										</header>
-										<p>Github: https://github.com/TheYoshiStory/EECS206A</p>
-										<!--<p><code>src/frame_publisher.py</code> refreshes key coordinate frames in case they get obstructed from view<br/>
-											<code>src/state_observer.py</code> provides state estimations of all coordinate frames<br/>
-											<code>src/path_planner.py</code> plans a smooth trajectory from an initial state to a final state<br/>
-											<code>src/motion_controller.py</code> determines control inputs to maintain rigid body and track trajectory<br/>
-											<code>msg/State.msg</code> fully describes the state-space with (x, y, θ)<br/>
-											<code>launch/robot.launch</code> launches frame_publisher.py, state_observer.py, path_planner.py, motion_controller.py
-											along with 2 static transform publisher nodes. Also contains parameters such as turtlebot color, AR tag numbers, and robot configuration<br/>
-											<code>launch/simulator.launch</code> launches state_observer.py, path_planner.py, motion_controller.py in turtlesim<br/>
-											<code>launch/rviz.launch</code> launches rviz, ar_track_alvar, and usb_cam</p>-->
-                                        <img src="images/code.png" style="width: 100%;"/>
-									</div>
-								</div>
-							</section>
+                    <!-- Results -->
+                    <section id="results" class="main">
+                        <div class="spotlight">
+                            <div class="content">
+                                <header class="major">
+                                    <h2>Results</h2>
+                                </header>
+                                <p style="text-align: justify;">
+                                    Overall, the project met our most important design criteria of maintaining a rigid body
+                                    structure while in motion. It was able to move between states in an obstacle-free
+                                    environment provided all robots remained in the camera’s field-of-view.
+                                </p>
+                                <p style="text-align: justify;">
+                                    The global controller was relatively robust provided it did not miss a waypoint in
+                                    the path. This was prevented by appropriately selecting the distance between
+                                    waypoints and the curvature of the trajectory. The system was able to reach its
+                                    targets within 10cm and 5°.
+                                <p style="text-align: justify;">
+                                    The local controllers were robust to disturbances in initial conditions as well
+                                    as deviations from the global robot. They maintained their states within 5cm of
+                                    translational error and 5° of rotational error.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
-							<section id="results" class="main special">
-								<header class="major">
-									<h2>Results</h2>
-								</header>
-								<iframe class="youtube"
-										width="850"
-										height="478"
-										src="https://www.youtube.com/embed/kbM0s6gdCPo"
-										frameborder="0"
-										allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-										allowfullscreen>
-								</iframe>
-								<div style="text-align: justify; margin-top: 30px;">
-									<p>Assuming that the trajectory stays in the field of view of the camera, the system reaches the target every time.
-										The major weakness is actually the connection to the robots. The pink Kobuki robot may lose connection for a second. That is why
-										it is chosen as the central robot that is the reference for the control of the lateral robots. If we put the pink one on the side,
-										the system will keep moving to the target without waiting for the pink unit. As a result, this issue explains why the system does not
-										move smoothly to the target but has some jerk caused by the central robot connection problems.</p>
-								</div>
-								<p class="content">Nam elementum nisl et mi a commodo porttitor. Morbi sit amet nisl eu arcu faucibus hendrerit vel a risus. Nam a orci mi, elementum ac arcu sit amet, fermentum pellentesque et purus. Integer maximus varius lorem, sed convallis diam accumsan sed. Etiam porttitor placerat sapien, sed eleifend a enim pulvinar faucibus semper quis ut arcu. Ut non nisl a mollis est efficitur vestibulum. Integer eget purus nec nulla mattis et accumsan ut magna libero. Morbi auctor iaculis porttitor. Sed ut magna ac risus et hendrerit scelerisque. Praesent eleifend lacus in lectus aliquam porta. Cras eu ornare dui curabitur lacinia.</p>
-							</section>
+                    <!-- Improvements -->
+                    <section id="improvements" class="main">
+                        <div class="spotlight">
+                            <div class="content">
+                                <header class="major">
+                                    <h2>Improvements</h2>
+                                </header>
+                                <p style="text-align: justify;">
+                                    Currently, robot configurations are limited. All configurations must have a
+                                    robot located at the origin of the global robot and the local robots can only
+                                    be placed along the horizontal axis. For arbitrary configurations to be possible,
+                                    state estimation of the global frame needs to be achieved with reasonable
+                                    accuracy using only the state estimations of the local frames. In order to
+                                    place robots away from the horizontal axis, the controller has to be redesigned
+                                    since the overall system changes from a unicycle-model robot to a bicycle model robot.
+                                </p>
+                                <p style="text-align: justify;">
+                                    Another addition would be the use of onboard sensors to improve state estimation
+                                    and enable obstacle avoidance. State estimation is done primarily through an
+                                    external camera and AR tags in key locations. However, combining this with odometry
+                                    using a complementary filter would reduce sensor noise and generate a better state
+                                    estimate. The TurtleBot2 platform also have depth cameras, allowing them to perform
+                                    SLAM. This can be used to detect nearby obstacles and recompute the trajectory if
+                                    it becomes unobtainable.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
 
-							<section id="conclusion" class="main special">
-								<header class="major">
-									<h2>Conclusion</h2>
-									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
-									posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
-								</header>
-							</section>
+                    <!-- Team -->
+                    <section id="team" class="main special">
+                        <header class="major">
+                            <h2>Team</h2>
+                            <iframe width="100%"
+                                    height="480px"
+                                    frameborder="0"
+                                    src="./carousel.html"></iframe>
+                        </header>
+                    </section>
 
-							<section id="team" class="main special">
-								<header class="major">
-									<h2>Team</h2>
-									<iframe width="100%"
-											height="480px"
-											frameborder="0"
-											src="./carousel.html"></iframe>
-								</header>
-							</section>
+                    <section id="materials" class="main special">
+                        <header class="major">
+                            <h2>Additional materials</h2>
+                            <p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
+                                posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
+                        </header>
+                    </section>
+                </div>
 
-							<section id="materials" class="main special">
-								<header class="major">
-									<h2>Additional materials</h2>
-									<p>Donec imperdiet consequat consequat. Suspendisse feugiat congue<br />
-										posuere. Nulla massa urna, fermentum eget quam aliquet.</p>
-								</header>
-							</section>
+            <!-- Footer
+                <footer id="footer">
+                    <section>
+                        <h2>Aliquam sed mauris</h2>
+                        <p>Sed lorem ipsum dolor sit amet et nullam consequat feugiat consequat magna adipiscing tempus etiam dolore veroeros. eget dapibus mauris. Cras aliquet, nisl ut viverra sollicitudin, ligula erat egestas velit, vitae tincidunt odio.</p>
+                        <ul class="actions">
+                            <li><a href="generic.html" class="button">Learn More</a></li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h2>Etiam feugiat</h2>
+                        <dl class="alt">
+                            <dt>Address</dt>
+                            <dd>1234 Somewhere Road &bull; Nashville, TN 00000 &bull; USA</dd>
+                            <dt>Phone</dt>
+                            <dd>(000) 000-0000 x 0000</dd>
+                            <dt>Email</dt>
+                            <dd><a href="#">information@untitled.tld</a></dd>
+                        </dl>
+                        <ul class="icons">
+                            <li><a href="https://github.com/TheYoshiStory/EECS206A" class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
+                            <li><a href="https://ucb-ee106.github.io/ee106a-fa19/" class="icon brands fa-dribbble alt"><span class="label">Dribbble</span></a></li>
+                        </ul>
+                    </section>
+                    <p class="copyright">&copy; Untitled. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
+                </footer>
+            -->
+            </div>
 
-					</div>
+        <!-- Scripts -->
+            <script src="assets/js/jquery.min.js"></script>
+            <script src="assets/js/jquery.scrollex.min.js"></script>
+            <script src="assets/js/jquery.scrolly.min.js"></script>
+            <script src="assets/js/browser.min.js"></script>
+            <script src="assets/js/breakpoints.min.js"></script>
+            <script src="assets/js/util.js"></script>
+            <script src="assets/js/main.js"></script>
 
-				<!-- Footer -->
-					<footer id="footer">
-						<section>
-							<h2>Aliquam sed mauris</h2>
-							<p>Sed lorem ipsum dolor sit amet et nullam consequat feugiat consequat magna adipiscing tempus etiam dolore veroeros. eget dapibus mauris. Cras aliquet, nisl ut viverra sollicitudin, ligula erat egestas velit, vitae tincidunt odio.</p>
-							<ul class="actions">
-								<li><a href="generic.html" class="button">Learn More</a></li>
-							</ul>
-						</section>
-						<section>
-							<h2>Etiam feugiat</h2>
-							<dl class="alt">
-								<dt>Address</dt>
-								<dd>1234 Somewhere Road &bull; Nashville, TN 00000 &bull; USA</dd>
-								<dt>Phone</dt>
-								<dd>(000) 000-0000 x 0000</dd>
-								<dt>Email</dt>
-								<dd><a href="#">information@untitled.tld</a></dd>
-							</dl>
-							<ul class="icons">
-								<li><a href="https://github.com/TheYoshiStory/EECS206A" class="icon brands fa-github alt"><span class="label">GitHub</span></a></li>
-								<li><a href="https://ucb-ee106.github.io/ee106a-fa19/" class="icon brands fa-dribbble alt"><span class="label">Dribbble</span></a></li>
-							</ul>
-						</section>
-						<p class="copyright">&copy; Untitled. Design: <a href="https://html5up.net">HTML5 UP</a>.</p>
-					</footer>
-
-			</div>
-
-		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.scrollex.min.js"></script>
-			<script src="assets/js/jquery.scrolly.min.js"></script>
-			<script src="assets/js/browser.min.js"></script>
-			<script src="assets/js/breakpoints.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<script src="assets/js/main.js"></script>
-
-	</body>
+    </body>
 </html>
