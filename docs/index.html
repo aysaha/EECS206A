@@ -30,13 +30,11 @@
 				<!-- Nav -->
 					<nav id="nav">
 						<ul>
-							<li><a href="#introduction" class="active">Introduction</a></li>
+							<li><a href="#overview" class="active">Overview</a></li>
 							<li><a href="#design">Design</a></li>
 							<li><a href="#implementation">Implementation</a></li>
-							<li><a href="#results">Results</a></li>
-							<li><a href="#conclusion">Conclusion</a></li>
+							<li><a href="#improvements">Improvements</a></li>
 							<li><a href="#team">Team</a></li>
-							<li><a href="#materials">Additional materials</a></li>
 						</ul>
 					</nav>
 
@@ -44,21 +42,21 @@
 					<div id="main">
 
 						<!-- Introduction -->
-							<section id="introduction" class="main">
+							<section id="overview" class="main">
 								<div class="spotlight">
 									<div class="content">
 										<header class="major">
 											<h2>Introduction</h2>
 										</header>
-										<p style="text-align: justify;">BaleBot aims to coordinate multiple TurtleBots to act as an arbitrary rigid
-											body. It will plan and track a trajectory from an initial state to a final
-											state while maintaining its rigid body structure. This is an interesting
-											project because it deals with planning and control of a nonlinear,
-											nonholonomic system. To make BaleBot work, it has to generate a path that
-											takes into accounts system dynamics while synchrnoziing multiple control
-											loops. This project would be useful for warehouse robotics. It can allow for
-											transportation of large objects with multiple smaller robots instead of a
-											single large robot.</p>
+										<p style="text-align: justify;">
+                                            BaleBot coordinates multiple TurtleBot2 robots to function as a single
+                                            entity. It achieves this by maintaining a rigid body structure as it
+                                            tracks a trajectory from an initial state to a final state.This is an
+                                            interesting problem because the system is nonlinear and nonholonomic.
+                                            Dynamics need to be taken into account when planning and control loops
+                                            need to be synchronized between all agents. The main application for
+                                            this project would be in warehouse robotics. It can enable several
+                                            smaller robots to move large objects by working collaboratively.</p>
 									</div>
 									<span class="image"><img src="images/system.jpg" alt="" /></span>
 								</div>
