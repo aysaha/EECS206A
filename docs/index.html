@@ -107,7 +107,11 @@
                                 presented by Professor Alessandro De Luca from the Sapienza University
                                 of Rome was utilized for its simplicity and flexibility.
                             </p>
-                            <img style="width:75%;" src="images/trajectory_croppped.png"/>
+
+                            <div style="display: flex; justify-content: center">
+                                <img style="width:75%;" src="images/trajectory_croppped.png"/>
+                            </div>
+
                             <p style="text-align: justify;">
                                 <br/>
                                 Control had to drive the system to the next state while maintaining its
@@ -119,7 +123,11 @@
                                 in conjunction with a proportional controller to derive the control signals
                                 for each robot.
                             </p>
-                            <img style="width:75%;" src="images/RotatingBody_cropped.png"/>
+
+                            <div style="display: flex; justify-content: center">
+                                <img style="width:50%;" src="images/RotatingBody_cropped.png"/>
+                            </div>
+                            
                             <p style="text-align: justify;">
                                 <br/>
                                 The major tradeoff in the design was maintaining the rigid body structure
@@ -152,7 +160,7 @@
                             <p style="text-align: justify;">
                                 <br/>
                                 To make communication simple, we created a custom message type defined in <code>msg/State.msg</code>.
-                                It comprises of a float tuple (x, y, θ) that is used to fully describe the state-space.
+                                It comprises of a float tuple <br/> (x, y, θ) that is used to fully describe the state-space.
                                 <br/>
                                 <br/>
                                 <code>src/frame_publisher.py</code> is a node that is used to update the goal frame in the case
@@ -195,7 +203,7 @@
                                 The global controller was relatively robust provided it did not miss a waypoint in
                                 the path. This was prevented by appropriately selecting the distance between
                                 waypoints and the curvature of the trajectory. The system was able to reach its
-                                targets within 10cm and 5°.
+                                targets within 10cm <br/> and 5°.
                                 <br/>
                                 <br/>
                                 The local controllers were robust to disturbances in initial conditions as well
